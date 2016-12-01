@@ -158,10 +158,10 @@ float *mfcc (Clip c, filterbank &fb) {
     return coeffs;
 }
 
-void write_features (Clip c, unsigned window_len, unsigned frame_shift, filterbank &fb, const char *fname) {
-    FILE *out = fopen (fname, "w");
+void write_features (Clip c, unsigned window_len, unsigned frame_shift, filterbank &fb, string fname) {
+    FILE *out = fopen (fname.c_str(), "w");
     if (out == NULL) throw 1;
-//    c.preemphasis (0.97f);  // if desired
+    c.preemphasis (0.96f);  // if desired
     Clip window = Clip(c, 0, window_len);
     window.window = hamming_window;
     fseek (out, 4, SEEK_CUR);
@@ -172,6 +172,7 @@ void write_features (Clip c, unsigned window_len, unsigned frame_shift, filterba
         for (int i=0; i < NPARAMS; i++) {
             fwrite (cc+i, 4, 1, out);
         }
+        delete[] cc;
         n++;
         if (n % 100 == 0) {
             cout << "Done " << n << " frames in " << (clock() - time)/1000 << "ms" << endl;
@@ -182,8 +183,8 @@ void write_features (Clip c, unsigned window_len, unsigned frame_shift, filterba
     fclose (out);
 }
 
-vector<featurevec*> read_features (const char *fname) {
-    FILE *in = fopen (fname, "r");
+vector<featurevec*> read_features (string fname) {
+    FILE *in = fopen (fname.c_str(), "r");
     if (in == NULL) throw 1;
     int n;
     fread (&n, 4, 1, in);

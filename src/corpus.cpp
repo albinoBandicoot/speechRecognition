@@ -8,7 +8,7 @@
 
 #include "corpus.hpp"
 
-utterance::utterance (istream &in, const char *mfcc_fname, pronouncer &pr) {
+utterance::utterance (istream &in, string mfcc_fname, pronouncer &pr) {
     char buf[500];
     in.getline (buf, 500);
     text = string(buf);

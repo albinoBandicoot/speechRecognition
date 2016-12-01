@@ -45,7 +45,7 @@ public:
     acoustic_model &acm;
     
     hmm (vector<phone::phone> ph, acoustic_model &ac);  // this builds the HMM for embedded training on a training sentence
-    hmm (pronlex pr, unigram_model uni, acoustic_model &ac);   // builds the big HMM representing the entire pronunciation lexicon
+    hmm (pronlex pr, unigram_model uni, acoustic_model &ac);  // builds the big HMM representing the entire pronunciation lexicon
     
     list<hmm_state*> viterbi (vector<featurevec*> fvs, float beam_width);
     void train (utterance &u);

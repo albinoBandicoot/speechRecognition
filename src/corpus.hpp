@@ -23,7 +23,7 @@ public:
     vector<phone::phone> pronunciation;
     vector<featurevec*> features;
 
-    utterance (istream &in, char *mfcc_fname, pronouncer &pr);
+    utterance (istream &in, string mfcc_fname, pronouncer &pr);
 };
 
 #endif /* corpus_hpp */

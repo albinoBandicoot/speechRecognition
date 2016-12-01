@@ -30,7 +30,7 @@ static wav_io_exception wavex_not_riff("Not an RIFF file"),
                         wavex_bad ("Bad WAV file"),
                         wavex_fopen_fail ("Could not open WAV file");
 
-Clip read_wav (char *file);
-void write_wav (Clip c, int sps, short bps, char *fname);
+Clip read_wav (string file);
+void write_wav (Clip c, int sps, short bps, string fname);
 
 #endif /* wav_hpp */

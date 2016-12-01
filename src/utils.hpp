@@ -11,6 +11,10 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <vector>
+#include <fstream>
+#include <iostream>
+using namespace std;
 
 float rectangular_window (int,int);
 float hanning_window (int,int);
@@ -82,5 +86,7 @@ void convolve (T *out, T *in, T *kernel, int len, int klen) {
     }
 }
 
+vector<string> readlines (const char *fname) ;
+vector<string> readlines (string fname);
 
 #endif /* utils_hpp */

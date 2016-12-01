@@ -63,8 +63,8 @@ float *dct (float *filtered, int len, int nparams);
 
 float *mfcc (Clip c, filterbank &fb);
 
-vector<featurevec*> read_features (const char *fname);
-void write_features (Clip c, unsigned window_len, unsigned frame_shift, filterbank &fb, const char *fname);
+vector<featurevec*> read_features (string fname);
+void write_features (Clip c, unsigned window_len, unsigned frame_shift, filterbank &fb, string fname);
 vector<featurevec*> get_features (Clip c, unsigned window_len, unsigned frame_shift, filterbank &fb);
 
 #endif /* mfcc_hpp */

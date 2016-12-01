@@ -52,8 +52,8 @@ float read_sample (FILE *in, int nchannels, int bps) {
     return (left+right)/2;
 }
 
-Clip read_wav (char *fname) {
-    FILE *in = fopen (fname, "r");
+Clip read_wav (string fname) {
+    FILE *in = fopen (fname.c_str(), "r");
     if (in == NULL) throw wavex_fopen_fail;
     char buf[4];
     fread (buf, 1, 4, in);
@@ -90,8 +90,8 @@ Clip read_wav (char *fname) {
     return Clip(*abuf);
 }
 
-void write_wav (Clip c, int sps, short bps, char *fname) {
-    FILE *out = fopen (fname, "w");
+void write_wav (Clip c, int sps, short bps, string fname) {
+    FILE *out = fopen (fname.c_str(), "w");
     if (out == NULL) throw 1;
     short aformat = 1;
     short nchannels = 1;

@@ -20,7 +20,7 @@ void hmm_state::set_prob (int i, float p) {
     tr[i].second = p;
 }
 
-hmm::hmm (vector<phone::phone> ph, acoustic_model &ac) {
+hmm::hmm (vector<phone::phone> ph, acoustic_model &ac) : acm(ac) {
     acm = ac;
     for (int i=0; i < ph.size(); i++) {
         if (USE_SUBPHONES and ph[i] != phone::SIL) {
@@ -45,7 +45,7 @@ hmm::hmm (vector<phone::phone> ph, acoustic_model &ac) {
 
 // should we use logprobs for all the transition probabilities?
 // currently uses unigram probabilities
-hmm::hmm (pronlex pr, unigram_model uni, acoustic_model &ac) {
+hmm::hmm (pronlex pr, unigram_model uni, acoustic_model &ac) : acm(ac) {
     acm = ac;
     acm = *new acoustic_model (8);
     states.push_back (hmm_state(phspec(phone::SIL, phone::BEGIN))); // this doesn't really represent silence, it's just the start state.
