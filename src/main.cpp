@@ -27,6 +27,8 @@ int main( ){
     
     filterbank fbank = *mel_filterbank(7200, 48, 320, 16000);
     
+    ofstream err(VOXFORGE_DIR + string("bad"));
+    
     vector<string> folders = readlines (VOXFORGE_DIR + string("/_list"));
     for (int i=0; i < folders.size(); i++) {
         cout << "Working on folder " << i << endl;
@@ -40,8 +42,15 @@ int main( ){
             cout << "Reading WAV " << wav_file << endl;
             Clip wav = read_wav (wav_file);
             
-            write_features(wav, 320, 160, fbank, VOXFORGE_DIR + folders[i] + string("mfc/") + wavname);
-            delete wav.buf;
+            try {
+                write_features(wav, 320, 160, fbank, VOXFORGE_DIR + folders[i] + string("mfc/") + wavname);
+                delete wav.buf;
+            } catch (int e) {
+                if (e == 1) {
+                    cout << "IO ERROR" << endl;
+                    err << folders[i] << endl;
+                }
+            }
         }
     }
     /*

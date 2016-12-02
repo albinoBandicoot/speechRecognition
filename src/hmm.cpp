@@ -8,7 +8,7 @@
 
 #include "hmm.hpp"
 
-hmm_state::hmm_state (phspec p) {
+hmm_state::hmm_state (phspec p) : ctx(phone::context(p.first)){
     ph = p;
 }
 
@@ -20,7 +20,7 @@ void hmm_state::set_prob (int i, float p) {
     tr[i].second = p;
 }
 
-hmm::hmm (vector<phone::phone> ph, acoustic_model &ac) : acm(ac) {
+hmm::hmm (vector<phone::phone> ph, acoustic_model &ac, state_model &smo) : acm(ac), sm(smo) {
     acm = ac;
     for (int i=0; i < ph.size(); i++) {
         if (USE_SUBPHONES and ph[i] != phone::SIL) {
@@ -45,7 +45,7 @@ hmm::hmm (vector<phone::phone> ph, acoustic_model &ac) : acm(ac) {
 
 // should we use logprobs for all the transition probabilities?
 // currently uses unigram probabilities
-hmm::hmm (pronlex pr, unigram_model uni, acoustic_model &ac) : acm(ac) {
+hmm::hmm (pronlex pr, unigram_model uni, acoustic_model &ac, state_model &sm) : acm(ac), sm(sm){
     acm = ac;
     acm = *new acoustic_model (8);
     states.push_back (hmm_state(phspec(phone::SIL, phone::BEGIN))); // this doesn't really represent silence, it's just the start state.
@@ -74,6 +74,36 @@ hmm::hmm (pronlex pr, unigram_model uni, acoustic_model &ac) : acm(ac) {
         states[e].tr.push_back (transition(&states[0], LOG_HALF)); // return to start state, ready for next word
 
     }
+}
+
+context_ties::context_ties (mode m) {
+    if (m == IDENT) {
+        for (int i=0; i < phone::NUM_PH; i++) {
+            phone::phone p = (phone::phone) i;
+            c[p] = p;
+        }
+    } else if (m == NULL_CONTEXT) {
+        for (int i=0; i < phone::NUM_PH; i++) {
+            c[(phone::phone) i] = phone::SIL;   // when operator() is called, this will return SIL curr SIL for any context, so there is exactly one context per central phone, so no context dependent effects will be modeled
+        }
+    
+    } else if (m == PHONE_CLASSES) {
+        using namespace phone;
+        c[B] = c[D] = c[G] = c[K] = c[P] = c[T] = B;    // stops
+        c[M] = c[N] = c[NG] = N;    // nasals
+        c[CH] = c[DH] = c[F] = c[JH] = c[S] = c[SH] = c[TH] = c[V] = c[Z] = c[ZH] = SH; // fricatives
+        c[L] = c[R] = c[W] = c[Y] = L;  // liquids
+        
+        c[AE] = c[EH] = c[IH] = c[IY] = AE; // front vowel
+        c[AA] = c[AH] = c[AO] = c[ER] = AA; // central vowel
+        c[AW] = c[OW] = c[UH] = c[UW] = AW; // back vowel
+        c[AY] = c[EY] = c[OY] = OY; // dipthongy things
+        c[HH] = HH;
+    }
+}
+
+phone::context context_ties::operator() (phone::context ctx) {
+    return phone::context(c[ctx.prev], ctx.curr, c[ctx.next]);
 }
 
 typedef map<hmm_state*, float> layer;

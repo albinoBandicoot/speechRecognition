@@ -87,6 +87,7 @@ Clip read_wav (string fname) {
     for (int i=0; i < nframes; i++) {
         (*abuf)[i] = read_sample (in, nchannels, bps);
     }
+    fclose(in);
     return Clip(*abuf);
 }
 

@@ -30,6 +30,7 @@ typedef pair<hmm_state*, float> transition;
 class hmm_state {
 public:
     phspec ph;
+    phone::context ctx;
     vector<transition> tr;   // transitions and probabilities
     string *word;   // what word this state is part of (not needed for the training HMMs)
     
@@ -39,13 +40,39 @@ public:
     void set_prob (int i, float p);
 };
 
+// this maps a phone context to a canonical representative of its equivalence class
+class context_ties {
+public:
+    
+    enum mode {
+        IDENT, PHONE_CLASSES, NULL_CONTEXT
+    };
+    
+    map<phone::phone, phone::phone> c;
+//    map<phone::context, phone::context> ties;
+    
+    context_ties (mode m);
+    
+    phone::context operator() (phone::context ctx) ;
+    
+};
+
+class state_model {
+public:
+    context_ties &ties;
+    map<phone::context, float> advance_probs;   // probability of transition to next state. self loop probability is 1 - advance_prob. Not sure what to do about word-end nodes that have 3 transitions (self, advance to silence, skip silence)
+    
+    state_model (context_ties &t) : ties(t) {}
+};
+
 class hmm {
 public:
     vector<hmm_state> states;
     acoustic_model &acm;
+    state_model &sm;
     
-    hmm (vector<phone::phone> ph, acoustic_model &ac);  // this builds the HMM for embedded training on a training sentence
-    hmm (pronlex pr, unigram_model uni, acoustic_model &ac);  // builds the big HMM representing the entire pronunciation lexicon
+    hmm (vector<phone::phone> ph, acoustic_model &ac, state_model &smo);  // this builds the HMM for embedded training on a training sentence
+    hmm (pronlex pr, unigram_model uni, acoustic_model &ac, state_model &smo);  // builds the big HMM representing the entire pronunciation lexicon
     
     list<hmm_state*> viterbi (vector<featurevec*> fvs, float beam_width);
     void train (utterance &u);
