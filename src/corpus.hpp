@@ -15,15 +15,19 @@
 #include "pronounce.hpp"
 #include "clip.hpp"
 #include "mfcc.hpp"
+#include "hmm.hpp"
 using namespace std;
+
+class hmm;
 
 class utterance {
 public:
     string text;
     vector<phone::phone> pronunciation;
+    hmm *hmm;
     vector<featurevec*> features;
 
-    utterance (istream &in, string mfcc_fname, pronouncer &pr);
+    utterance (istream &in, string mfcc_fname, acoustic_model &acm, pronouncer &pr);
 };
 
 #endif /* corpus_hpp */
