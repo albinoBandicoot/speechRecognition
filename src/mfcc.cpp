@@ -19,11 +19,11 @@ featurevec::featurevec (float *c) {
     }
 }
 
-float featurevec::operator[] (int i) const {
+float& featurevec::operator[] (int i)  {
     if (i < NPARAMS) return coeffs[i];
     if (i < 2*NPARAMS) return deltas[i-NPARAMS];
     if (i < 3*NPARAMS) return delta2s[i-2*NPARAMS];
-    return 0;
+    return coeffs[i];
 }
 
 void featurevec::compute_deltas (vector<featurevec*> fvs, int i) {

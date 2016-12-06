@@ -33,6 +33,28 @@ namespace phone {
         
         context (phone c) : prev(SIL), curr(c), next(SIL) {}
         context (phone p, phone c, phone n) : prev(p), curr(c), next(n) {}
+        
+        bool operator< (const context& c) const;
+        void operator++ ();
+        
+    };
+    
+    
+    // this maps a phone context to a canonical representative of its equivalence class
+    class ties {
+    public:
+        
+        enum mode {
+            IDENT, PHONE_CLASSES, NULL_CONTEXT
+        };
+        
+        map<phone, phone> c;
+        //    map<phone::context, phone::context> ties;
+        
+        ties (mode m);
+        
+        context operator() (context ctx) ;
+        
     };
     
     static const char* names[] = {"_", "AA", "AE", "AH", "AO", "AW", "AY", "B", "CH", "D", "DH", "EH", "ER", "EY", "F", "G", "HH", "IH", "IY", "JH", "K", "L", "M", "N", "NG", "OW", "OY", "P", "R", "S", "SH", "T", "TH", "UH", "UW", "V", "W", "Y", "Z", "ZH"};

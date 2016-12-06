@@ -31,6 +31,29 @@ float gaussian::operator() (featurevec &fv) {
     return -0.5f * res + logwt;
 }
 
+featurevec mean (vector<featurevec*> fvs) {
+    featurevec mu;
+    int N = fvs.size();
+    for (int i=0; i < N; i++) {
+        for (int j=0; j < FV_LEN; j++) {
+            mu[j] += (*fvs[i])[j] / N;
+        }
+    }
+    return mu;
+}
+
+featurevec variance (vector<featurevec*> fvs, featurevec &mu) {
+    featurevec var;
+    int N = fvs.size();
+    for (int i=0; i < N; i++) {
+        for (int j=0; j < FV_LEN; j++) {
+            float f = (*fvs[i])[j] - mu[j];
+            var[j] += f*f / N;
+        }
+    }
+    return var;
+}
+
 /*
 gmm::gmm (int n) {
     for (int i=0; i < n; i++) {
@@ -47,7 +70,8 @@ float gmm::operator() (featurevec &fv) {
     return log(res);
 }
 
-acoustic_model::acoustic_model (int nmix) {
+acoustic_model::acoustic_model (phone::ties &t, int nmix) : ties(t) {
+    /*
     for (int i=0; i < phone::NUM_PH; i++) {
         if (USE_SUBPHONES) {
             mixtures[phspec((phone::phone) i, phone::BEGIN)] = new gmm(nmix);
@@ -58,8 +82,9 @@ acoustic_model::acoustic_model (int nmix) {
             mixtures[phspec((phone::phone) i, phone::MIDDLE)] = new gmm(nmix);
         }
     }
+     */
 }
 
-float acoustic_model::operator() (featurevec &fv, phspec ph) {
-    return (*mixtures[ph])(fv);
+float acoustic_model::operator() (featurevec &fv, phone::context ph) {
+    return (*(*mixtures.find(ph)).second)(fv);
 }

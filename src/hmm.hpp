@@ -23,6 +23,9 @@
 #define LOG_HALF -0.6931471805f
 #define LOG_THIRD -1.09861228866f
 
+#define SIL_SKIP_P 0.3
+
+#define LMSF 5      // language model scaling factor
 class hmm_state;
 
 typedef pair<hmm_state*, float> transition;
@@ -40,29 +43,16 @@ public:
     void set_prob (int i, float p);
 };
 
-// this maps a phone context to a canonical representative of its equivalence class
-class context_ties {
-public:
-    
-    enum mode {
-        IDENT, PHONE_CLASSES, NULL_CONTEXT
-    };
-    
-    map<phone::phone, phone::phone> c;
-//    map<phone::context, phone::context> ties;
-    
-    context_ties (mode m);
-    
-    phone::context operator() (phone::context ctx) ;
-    
-};
+
 
 class state_model {
 public:
-    context_ties &ties;
+    phone::ties &ties;
     map<phone::context, float> advance_probs;   // probability of transition to next state. self loop probability is 1 - advance_prob. Not sure what to do about word-end nodes that have 3 transitions (self, advance to silence, skip silence)
     
-    state_model (context_ties &t) : ties(t) {}
+    state_model (phone::ties &t) : ties(t) {}
+    
+    float operator() (phone::context ctx);
 };
 
 class hmm {
@@ -75,7 +65,8 @@ public:
     hmm (pronlex pr, unigram_model uni, acoustic_model &ac, state_model &smo);  // builds the big HMM representing the entire pronunciation lexicon
     
     list<hmm_state*> viterbi (vector<featurevec*> fvs, float beam_width);
-    void train (utterance &u);
+    void train (vector<utterance> ut);
+    void update_states ();
     
 };
 

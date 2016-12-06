@@ -42,11 +42,12 @@ public:
 
 class acoustic_model {
 public:
-    map<phspec, gmm*> mixtures;
+    map<phone::context, gmm*> mixtures;
+    phone::ties &ties;
     
-    acoustic_model (int nmix=1);
+    acoustic_model (phone::ties &t, int nmix = 1);
     
-    float operator() (featurevec &fv, phspec ph);
+    float operator() (featurevec &fv, phone::context ph);
 };
 
 #endif /* gmm_hpp */

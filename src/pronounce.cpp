@@ -31,6 +31,46 @@ phone::phone findPhone (string w) {
     }
 }
 
+phone::ties::ties (mode m) {
+    if (m == IDENT) {
+        for (int i=0; i < NUM_PH; i++) {
+            phone p = (phone) i;
+            c[p] = p;
+        }
+    } else if (m == NULL_CONTEXT) {
+        for (int i=0; i < NUM_PH; i++) {
+            c[(phone) i] = phone::SIL;   // when operator() is called, this will return SIL curr SIL for any context, so there is exactly one context per central phone, so no context dependent effects will be modeled
+        }
+    } else if (m == PHONE_CLASSES) {
+        using namespace phone;
+        c[B] = c[D] = c[G] = c[K] = c[P] = c[T] = T;    // stops
+        c[M] = c[N] = c[NG] = N;    // nasals
+        c[CH] = c[DH] = c[F] = c[JH] = c[S] = c[SH] = c[TH] = c[V] = c[Z] = c[ZH] = SH; // fricatives
+        c[L] = c[R] = c[W] = c[Y] = L;  // liquids
+        
+        c[AE] = c[EH] = c[IH] = c[IY] = AE; // front vowel
+        c[AA] = c[AH] = c[AO] = c[ER] = AA; // central vowel
+        c[AW] = c[OW] = c[UH] = c[UW] = AW; // back vowel
+        c[AY] = c[EY] = c[OY] = OY; // dipthongy things
+        c[HH] = HH;
+    }
+}
+
+phone::context phone::ties::operator() (context ctx) {
+    return context(c[ctx.prev], ctx.curr, c[ctx.next]);
+}
+
+bool phone::context::operator< (const context& c) const {
+    if (curr < c.curr) return true;
+    if (c.curr < curr) return false;
+    if (prev < c.prev) return true;
+    if (c.prev < prev) return false;
+    if (next < c.next) return true;
+    return false;
+}
+
+// -----------------------------------------------------
+
 pronlex::pronlex () {
 }
 
@@ -75,32 +115,7 @@ pronlist *pronlex::get (string w) {
     }
     return NULL;
 }
-/*
-vector<phone::phone> pronlex::pronounce (string s) {
-    vector<phone::phone> res;
-    istringstream is(s);
-    bool first = true;
-    while (is.good()) {
-        string w;
-        is >> w;
-        if (w[w.length()-1] == '-') w = w.substr(0,w.length()-1);
-        pronlist *p = get(w);
-        if (p) {
-            res.push_back (phone::SIL);
-            vector<phone::phone> wp = p->pronunciations[0];
-            for (int i=0; i < wp.size(); i++) {
-                res.push_back(wp[i]);
-            }
-        } else {
-            // first check for common suffixes
-            // now check to see if we can partition the word into two words in the dictionary
-            cout << "Warning! Cannot pronounce " << w << endl;
-        }
-    }
-    res.push_back(phone::SIL);
-    return res;
-}
-*/
+
 pronouncer::pronouncer (const char *main_fn, const char *pre_fn, const char *suf_fn) {
     ifstream m_in(main_fn), p_in(pre_fn), s_in(suf_fn);
     main = *new pronlex (m_in);

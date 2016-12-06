@@ -25,7 +25,7 @@ public:
     featurevec ();
     featurevec (float *c);
     
-    float operator[] (int i) const;
+    float& operator[] (int i);
     
     void compute_deltas (vector<featurevec*> fvs, int i);
     void compute_delta2s (vector<featurevec*> fvs, int i);

@@ -21,7 +21,6 @@ void hmm_state::set_prob (int i, float p) {
 }
 
 hmm::hmm (vector<phone::phone> ph, acoustic_model &ac, state_model &smo) : acm(ac), sm(smo) {
-    acm = ac;
     for (int i=0; i < ph.size(); i++) {
         if (USE_SUBPHONES and ph[i] != phone::SIL) {
             states.push_back (hmm_state(phspec(ph[i], phone::BEGIN)));
@@ -46,8 +45,6 @@ hmm::hmm (vector<phone::phone> ph, acoustic_model &ac, state_model &smo) : acm(a
 // should we use logprobs for all the transition probabilities?
 // currently uses unigram probabilities
 hmm::hmm (pronlex pr, unigram_model uni, acoustic_model &ac, state_model &sm) : acm(ac), sm(sm){
-    acm = ac;
-    acm = *new acoustic_model (8);
     states.push_back (hmm_state(phspec(phone::SIL, phone::BEGIN))); // this doesn't really represent silence, it's just the start state.
     for (map<string,pronlist>::iterator iter = pr.pr.begin(); iter != pr.pr.end(); iter++) {
         vector<phone::phone> p = (*iter).second.pronunciations[0]; // for now, ignore alternate pronunciations
@@ -62,7 +59,7 @@ hmm::hmm (pronlex pr, unigram_model uni, acoustic_model &ac, state_model &sm) : 
             }
         }
         states.push_back (hmm_state (phspec(phone::SIL, phone::MIDDLE)));
-        states[0].tr.push_back(transition(&states[s], exp(uni.get((*iter).first)))); 
+        states[0].tr.push_back(transition(&states[s], LMSF * uni.get((*iter).first)));
         for (int i=s; i < states.size()-2; i++) { // loop over states we just created for this word
             bool last = i == states.size()-2;
             states[i].tr.push_back (transition(&states[i], last ? LOG_THIRD : LOG_HALF));
@@ -74,36 +71,6 @@ hmm::hmm (pronlex pr, unigram_model uni, acoustic_model &ac, state_model &sm) : 
         states[e].tr.push_back (transition(&states[0], LOG_HALF)); // return to start state, ready for next word
 
     }
-}
-
-context_ties::context_ties (mode m) {
-    if (m == IDENT) {
-        for (int i=0; i < phone::NUM_PH; i++) {
-            phone::phone p = (phone::phone) i;
-            c[p] = p;
-        }
-    } else if (m == NULL_CONTEXT) {
-        for (int i=0; i < phone::NUM_PH; i++) {
-            c[(phone::phone) i] = phone::SIL;   // when operator() is called, this will return SIL curr SIL for any context, so there is exactly one context per central phone, so no context dependent effects will be modeled
-        }
-    
-    } else if (m == PHONE_CLASSES) {
-        using namespace phone;
-        c[B] = c[D] = c[G] = c[K] = c[P] = c[T] = B;    // stops
-        c[M] = c[N] = c[NG] = N;    // nasals
-        c[CH] = c[DH] = c[F] = c[JH] = c[S] = c[SH] = c[TH] = c[V] = c[Z] = c[ZH] = SH; // fricatives
-        c[L] = c[R] = c[W] = c[Y] = L;  // liquids
-        
-        c[AE] = c[EH] = c[IH] = c[IY] = AE; // front vowel
-        c[AA] = c[AH] = c[AO] = c[ER] = AA; // central vowel
-        c[AW] = c[OW] = c[UH] = c[UW] = AW; // back vowel
-        c[AY] = c[EY] = c[OY] = OY; // dipthongy things
-        c[HH] = HH;
-    }
-}
-
-phone::context context_ties::operator() (phone::context ctx) {
-    return phone::context(c[ctx.prev], ctx.curr, c[ctx.next]);
 }
 
 typedef map<hmm_state*, float> layer;
@@ -134,7 +101,7 @@ path hmm::viterbi (vector<featurevec*> fvs, float beam_width=1e10) {
             if (logp < current_best_logp - beam_width) continue;    // early abort for unpromising candidates
             for (triter t = src->tr.begin(); t != src->tr.end(); t++) { // loop over transitions from src
                 logp += t->second;    // multiply by transition probability
-                logp += acm(*fvs[i], t->first->ph);    // multiply by the acoustic model probability of observing feature vector i given the target state's phoneme
+                logp += acm(*fvs[i], t->first->ctx);    // multiply by the acoustic model probability of observing feature vector i given the target state's phoneme
                 // now look up the target state in 'next'
                 hmm_state *target = t->first;
                 if (next.count(target) == 1) {
@@ -179,6 +146,27 @@ path hmm::viterbi (vector<featurevec*> fvs, float beam_width=1e10) {
     return path;
 }
 
-void hmm::train (utterance &u) {
-    path p = viterbi (u.features);
+void hmm::train (vector<utterance> ut) {
+    vector<path> paths;
+    for (int i=0; i < ut.size(); i++) {
+        paths.push_back(viterbi (ut[i].features));
+    }
+}
+
+// update the transitions to reflect the state model
+// TODO: use logprobs, or make other stuff not use them.
+void hmm::update_states () {
+    for (int i=0; i < states.size(); i++) {
+        float p = sm(states[i].ctx);
+        if (states[i].tr.size() == 2) {
+            states[i].set_prob(0, 1-p);   // self loop
+            states[i].set_prob(1, p);
+        } else if (states[i].tr.size() == 3) {
+            states[i].set_prob(0, 1-p); // self
+            states[i].set_prob(1, (1-SIL_SKIP_P)*p);    // silence
+            states[i].set_prob(2, SIL_SKIP_P*p);    // skip
+        } else {    // it's the start state in the big model; don't change anything
+        }
+        
+    }
 }
