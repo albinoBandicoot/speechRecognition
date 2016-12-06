@@ -129,18 +129,14 @@ void gmm::divide_variances () {
 // ----------------------------------------------------------------------
 
 acoustic_model::acoustic_model (phone::ties &t, int nmix) : ties(t) {
-    /*
-    for (int i=0; i < phone::NUM_PH; i++) {
-        if (USE_SUBPHONES) {
-            mixtures[phspec((phone::phone) i, phone::BEGIN)] = new gmm(nmix);
-            mixtures[phspec((phone::phone) i, phone::MIDDLE)] = new gmm(nmix);
-            mixtures[phspec((phone::phone) i, phone::END)] = new gmm(nmix);
-
-        } else {
-            mixtures[phspec((phone::phone) i, phone::MIDDLE)] = new gmm(nmix);
+    phone::context start(phone::SIL);
+    phone::context c = start;
+    do {
+        if (mixtures.count(t(c)) == 0) {
+            mixtures[t(c)] = new gmm(nmix);
         }
-    }
-     */
+        ++c;
+    } while (start < c);
 }
 
 float acoustic_model::operator() (featurevec &fv, phone::context ph) {

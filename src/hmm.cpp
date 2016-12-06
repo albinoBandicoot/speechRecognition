@@ -58,9 +58,12 @@ hmm::hmm (vector<phone::phone> ph, acoustic_model *ac) : acm(ac), temp_acm(NULL)
             states[i].tr.push_back (transition(&states[i+1], LOG_THIRD));   // go to silence
             states[i].tr.push_back (transition(&states[i+2], LOG_THIRD));   // skip past silence
 
+        } else if (i+1 < states.size()){
+            states[i].tr.push_back (transition(&states[i], LOG_HALF));      // self loop
+            states[i].tr.push_back (transition(&states[i+1], LOG_HALF));    // advance
+        } else {
+            states[i].tr.push_back (transition(&states[i], 0)); // self loop, probability 1 for last state
         }
-        states[i].tr.push_back (transition(&states[i], LOG_HALF));      // self loop
-        states[i].tr.push_back (transition(&states[i+1], LOG_HALF));    // advance
     }
     for (int i=0; i < states.size(); i++) {
         phone::phone prev = (i == 0) ? phone::SIL : states[i-1].ph.first;
@@ -89,7 +92,7 @@ hmm::hmm (pronlex &pr, unigram_model &uni, acoustic_model *ac, state_model *sm) 
         states.push_back (hmm_state (phspec(phone::SIL, phone::MIDDLE)));
         states[0].tr.push_back(transition(&states[s], LMSF * uni.get((*iter).first)));
         for (int i=s; i < states.size()-1; i++) { // loop over states we just created for this word
-            bool last = i == states.size()-1;
+            bool last = i == states.size()-2;
             states[i].tr.push_back (transition(&states[i], last ? LOG_THIRD : LOG_HALF));
             states[i].tr.push_back (transition(&states[i+1], last ? LOG_THIRD : LOG_HALF));
             if (last) states[i].tr.push_back (transition(&states[0], LOG_THIRD));
@@ -198,10 +201,13 @@ void hmm::train_transition_probabilities (path p) {
 
 typedef pair<phone::context, int> mixcomp;
 
+#define EM_ITERS 10
 // this is called on the lexicon HMM
 void hmm::train (vector<utterance> &ut) {
     vector<path> paths;
-    while (1) {
+    int em_iter = 0;
+    while (em_iter++ < EM_ITERS) {
+        cout << "Iteration " << em_iter << endl;
         // compute Viterbi paths for each utterance
         paths.clear();
         for (int i=0; i < ut.size(); i++) {

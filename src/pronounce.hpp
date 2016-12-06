@@ -35,7 +35,7 @@ namespace phone {
         context (phone p, phone c, phone n) : prev(p), curr(c), next(n) {}
         
         bool operator< (const context& c) const;
-        void operator++ ();
+        context operator++ ();
         
     };
     

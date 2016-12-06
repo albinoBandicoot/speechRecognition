@@ -17,7 +17,7 @@
 #include "mfcc.hpp"
 #include "langmodel.hpp"
 
-#define USE_SUBPHONES true
+#define USE_SUBPHONES false
 
 #define LOG_HALF -0.6931471805f
 #define LOG_THIRD -1.09861228866f

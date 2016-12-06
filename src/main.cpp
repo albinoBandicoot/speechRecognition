@@ -24,23 +24,27 @@ int main( ){
     cout << "Loading pronunciation lexicon..." << endl;
     pronouncer pron("../res/lexicon/cmu.txt", "../res/lexicon/prefixes.txt", "../res/lexicon/suffixes.txt");
     cout << "Loading language model..." << endl;
-    ifstream lm("../res/ngram/unigram");
+    ifstream lm("../res/ngram/unigram_small");
     unigram_model uni(lm,111452435771L);
     
+    cout << "Initializing acoustic model..." << endl;
     phone::ties acm_ties(phone::ties::NULL_CONTEXT);
     phone::ties hmm_ties(phone::ties::PHONE_CLASSES);
     acoustic_model acm (acm_ties, 1);
     
+    cout << "Reading training data... " << endl;
     vector<string> folders = readlines (VOXFORGE_DIR + string("/_train"));
     vector<utterance> ut;
     for (int i=0; i < folders.size(); i++) {
         ifstream prompts(VOXFORGE_DIR + folders[i] + string("etc/PROMPTS").c_str());
-        while (prompts.good()) {
+        while (prompts.peek() != EOF) {
             ut.push_back (utterance(prompts, string(VOXFORGE_DIR), acm, pron));
         }
     }
+    cout << "Constructing lexicon HMM..." << endl;
     
-    hmm h(pron.main, uni, &acm, new state_model(&hmm_ties));
+    hmm h(pron.prefixes, uni, &acm, new state_model(&hmm_ties));
+    cout << "Starting Embedded Training... " << endl;
     h.train (ut);
     
     

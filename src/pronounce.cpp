@@ -69,6 +69,29 @@ bool phone::context::operator< (const context& c) const {
     return false;
 }
 
+phone::context phone::context::operator++ () {
+    int n = ((int) next) + 1;
+    if (n == NUM_PH) {
+        n = 0;
+        int c = ((int) curr) + 1;
+        if (c == NUM_PH) {
+            c = 0;
+            int p = ((int) prev) + 1;
+            if (p == NUM_PH) {
+                p = 0;
+            }
+            prev = (phone) p;
+        }
+        curr = (phone) c;
+    }
+    next = (phone) n;
+    return *this;
+}
+
+ostream& operator<< (ostream &strm, const phone::context &ctx) {
+    return strm << "(" << phone::names[ctx.prev] << " " << phone::names[ctx.curr] << " " << phone::names[ctx.next] << ")";
+}
+
 // -----------------------------------------------------
 
 pronlex::pronlex () {
@@ -81,10 +104,10 @@ pronlex::pronlex (istream &in) {
         cout << "Failed to open pronunciation lexicon file " << endl;
         exit(1);
     }
-    while (in.good()) {
+    while (in.peek() != EOF) {
         in.getline(buf, 256);
         if (buf[0] == ';') continue;    // comment
-      //  cout << "Line is: " << buf << endl;
+       // cout << "Line is: " << buf << endl;
         istringstream is((string(buf)));
         string word, ph;
         is >> word;
@@ -113,6 +136,7 @@ pronlist *pronlex::get (string w) {
     if (pr.count(w) == 1) {
         return &pr[w];
     }
+    cout << "!! didn't find " << w << endl;
     return NULL;
 }
 
@@ -121,16 +145,17 @@ pronouncer::pronouncer (const char *main_fn, const char *pre_fn, const char *suf
     main = *new pronlex (m_in);
     prefixes = *new pronlex (p_in);
     suffixes = *new pronlex (s_in);
+    cout << "Got " << main.pr.size() << " words in main lexicon." << endl;
 }
 
-void append_pron (vector<phone::phone> res, vector<phone::phone> wp, bool leading_silence=true) {
+void append_pron (vector<phone::phone> &res, vector<phone::phone> wp, bool leading_silence=true) {
     if (leading_silence) res.push_back (phone::SIL);
     for (int i=0; i < wp.size(); i++) {
         res.push_back(wp[i]);
     }
 }
 
-void append_pron (vector<phone::phone> res, pronlist *p, bool leading_silence=true) {
+void append_pron (vector<phone::phone> &res, pronlist *p, bool leading_silence=true) {
     append_pron (res, p->pronunciations[0]);
 }
 
@@ -138,7 +163,7 @@ vector<phone::phone> pronouncer::pronounce_word (string w) {
     vector<phone::phone> res;
     if (w[w.length()-1] == '-') w = w.substr(0,w.length()-1);
     pronlist *p = main.get(w);
-    if (p) {
+    if (p != NULL) {
         append_pron(res, p);
         return res;
     } else if (w.length() >= 4) {
@@ -221,14 +246,18 @@ vector<phone::phone> pronouncer::pronounce (string s) {
     while (is.good()) {
         string w;
         is >> w;
-        try {
+//        try {
+            cout << "\t\tpronouncing " << w << ": ";
             vector<phone::phone> word_pron = pronounce_word(w);
+            cout << "(" << word_pron.size() << "): ";
             for (int i=0; i < word_pron.size(); i++) {
+                cout << phone::names[word_pron[i]] << " ";
                 res.push_back (word_pron[i]);
             }
-        } catch (int ex) {
-            
-        }
+            cout << endl;
+//        } catch (int ex) {
+  //          cout << "Caught exception " << ex <<endl;
+    //    }
     }
     res.push_back(phone::SIL);
     return res;

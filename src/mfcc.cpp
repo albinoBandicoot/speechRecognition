@@ -184,10 +184,12 @@ void write_features (Clip c, unsigned window_len, unsigned frame_shift, filterba
 }
 
 vector<featurevec*> read_features (string fname) {
+    cout << "\treading features... ";
     FILE *in = fopen (fname.c_str(), "r");
     if (in == NULL) throw 1;
     int n;
     fread (&n, 4, 1, in);
+    cout << "found " << n << " FVs" << endl;
     vector<featurevec*> fvs;
     for (int i=0; i < n; i++) {
         featurevec *fv = new featurevec();
