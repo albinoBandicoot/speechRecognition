@@ -67,12 +67,12 @@ public:
     acoustic_model *acm, *temp_acm;
     state_model *sm;
     
-    hmm (vector<phone::phone> ph, acoustic_model &ac);  // this builds the HMM for embedded training on a training sentence
-    hmm (pronlex pr, unigram_model uni, acoustic_model &ac, state_model *smo);  // builds the big HMM representing the entire pronunciation lexicon
+    hmm (vector<phone::phone> ph, acoustic_model *ac);  // this builds the HMM for embedded training on a training sentence
+    hmm (pronlex &pr, unigram_model &uni, acoustic_model *ac, state_model *smo);  // builds the big HMM representing the entire pronunciation lexicon
     
     list<hmm_state*> viterbi (vector<featurevec*> fvs, float beam_width);
     void train_transition_probabilities (path p);
-    void train (vector<utterance> ut);
+    void train (vector<utterance> &ut);
     void update_states ();
     
 };

@@ -42,7 +42,7 @@ void state_model::augment (hmm_state *state) {
     counts[c] += 1;
 }
 
-hmm::hmm (vector<phone::phone> ph, acoustic_model &ac) : acm(&ac), sm(new state_model(NULL)) {
+hmm::hmm (vector<phone::phone> ph, acoustic_model *ac) : acm(ac), temp_acm(NULL), sm(new state_model(NULL)) {
     for (int i=0; i < ph.size(); i++) {
         if (USE_SUBPHONES and ph[i] != phone::SIL) {
             states.push_back (hmm_state(phspec(ph[i], phone::BEGIN)));
@@ -71,7 +71,8 @@ hmm::hmm (vector<phone::phone> ph, acoustic_model &ac) : acm(&ac), sm(new state_
 
 // should we use logprobs for all the transition probabilities?
 // currently uses unigram probabilities
-hmm::hmm (pronlex pr, unigram_model uni, acoustic_model &ac, state_model *sm) : acm(&ac), sm(sm){
+hmm::hmm (pronlex &pr, unigram_model &uni, acoustic_model *ac, state_model *sm) : acm(ac), sm(sm){
+    temp_acm = new acoustic_model (*acm);   // copy
     states.push_back (hmm_state(phspec(phone::SIL, phone::BEGIN))); // this doesn't really represent silence, it's just the start state.
     for (map<string,pronlist>::iterator iter = pr.pr.begin(); iter != pr.pr.end(); iter++) {
         vector<phone::phone> p = (*iter).second.pronunciations[0]; // for now, ignore alternate pronunciations
@@ -198,7 +199,7 @@ void hmm::train_transition_probabilities (path p) {
 typedef pair<phone::context, int> mixcomp;
 
 // this is called on the lexicon HMM
-void hmm::train (vector<utterance> ut) {
+void hmm::train (vector<utterance> &ut) {
     vector<path> paths;
     while (1) {
         // compute Viterbi paths for each utterance

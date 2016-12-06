@@ -21,13 +21,31 @@ int main( ){
     char cwd[256];
     getcwd(cwd, 256);
     cout << "Current dir: " << cwd << endl;
-//    pronouncer pron("../res/lexicon/cmu.txt", "../res/lexicon/prefixes.txt", "../res/lexicon/suffixes.txt");
+    cout << "Loading pronunciation lexicon..." << endl;
+    pronouncer pron("../res/lexicon/cmu.txt", "../res/lexicon/prefixes.txt", "../res/lexicon/suffixes.txt");
+    cout << "Loading language model..." << endl;
     ifstream lm("../res/ngram/unigram");
-//    unigram_model uni(lm,111452435771L);
+    unigram_model uni(lm,111452435771L);
     
+    phone::ties acm_ties(phone::ties::NULL_CONTEXT);
+    phone::ties hmm_ties(phone::ties::PHONE_CLASSES);
+    acoustic_model acm (acm_ties, 1);
+    
+    vector<string> folders = readlines (VOXFORGE_DIR + string("/_train"));
+    vector<utterance> ut;
+    for (int i=0; i < folders.size(); i++) {
+        ifstream prompts(VOXFORGE_DIR + folders[i] + string("etc/PROMPTS").c_str());
+        while (prompts.good()) {
+            ut.push_back (utterance(prompts, string(VOXFORGE_DIR), acm, pron));
+        }
+    }
+    
+    hmm h(pron.main, uni, &acm, new state_model(&hmm_ties));
+    h.train (ut);
+    
+    
+    /* THIS IS WHAT IS NEEDED FOR COMPUTING MFCCs FOR NEW FILES
     filterbank fbank = *mel_filterbank(7200, 48, 320, 16000);
-    
-    ofstream err(VOXFORGE_DIR + string("bad"));
     
     vector<string> folders = readlines (VOXFORGE_DIR + string("/_list"));
     for (int i=0; i < folders.size(); i++) {
@@ -48,11 +66,13 @@ int main( ){
             } catch (int e) {
                 if (e == 1) {
                     cout << "IO ERROR" << endl;
-                    err << folders[i] << endl;
                 }
             }
         }
     }
+     */
+     
+     
     /*
     struct dirent *ent;
     DIR *dp;
@@ -65,28 +85,4 @@ int main( ){
         }
     }
 */
-#if 0
-    Clip c = read_wav ("/Applications/of_v0.9.3_osx_release/apps/myApps/speakerID/res/wav/02.wav");
-    cout << "File reading complete" << endl;
-    ifstream in("/Applications/of_v0.9.3_osx_release/apps/myApps/speakerID/res/trn/02.trn");
-    vector<utterance> ut;
-    while (in.good()) {
-        try {
-            utterance u(in, c, 22050, pron);
-            ut.push_back(u);
-        } catch (int ex) {
-            cout << "Caught exception " << ex << "; last utterance is " << ut[ut.size()-1].text << endl;
-        }
-      /*
-        cout << u.text << endl;
-        for (int i=0; i < u.pronunciation.size(); i++) {
-            cout << phone::names[u.pronunciation[i]] << " ";
-        }
-        cout << endl;
-       */
-    }
-#endif
-//    Clip sub(c,100000,200000);
-//    write_wav (sub, 22050, 16, "/Users/Nathan/Desktop/test.wav");
-//    write_features(c, 384, 192, *mel_filterbank(7200, 48, 384, 16000), "/Applications/of_v0.9.3_osx_release/apps/myApps/speakerID/res/test.mfcc");
 }

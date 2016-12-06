@@ -27,7 +27,7 @@ public:
     hmm *hmm;
     vector<featurevec*> features;
 
-    utterance (istream &in, string mfcc_fname, acoustic_model &acm, pronouncer &pr);
+    utterance (istream &in, string path_base, acoustic_model &acm, pronouncer &pr);
 };
 
 #endif /* corpus_hpp */

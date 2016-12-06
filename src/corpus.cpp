@@ -9,11 +9,11 @@
 #include "corpus.hpp"
 #include "hmm.hpp"
 
-utterance::utterance (istream &in, string mfcc_fname, acoustic_model &acm, pronouncer &pr) {
-    char buf[500];
-    in.getline (buf, 500);
-    text = string(buf);
+utterance::utterance (istream &in, string path_base, acoustic_model &acm, pronouncer &pr) {
+    string mfcc_fname;
+    in >> mfcc_fname;
+    getline(in, text);
     pronunciation = pr.pronounce (text);
-    hmm = new class hmm(pronunciation, acm);
-    features = read_features (mfcc_fname);
+    hmm = new class hmm(pronunciation, &acm);
+    features = read_features (path_base + mfcc_fname);
 }
