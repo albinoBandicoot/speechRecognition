@@ -30,4 +30,7 @@ public:
     utterance (istream &in, string path_base, acoustic_model &acm, pronouncer &pr);
 };
 
+featurevec mean (vector<utterance> &);
+featurevec variance (vector<utterance> &, featurevec&);
+
 #endif /* corpus_hpp */

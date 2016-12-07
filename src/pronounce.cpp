@@ -161,7 +161,8 @@ void append_pron (vector<phone::phone> &res, pronlist *p, bool leading_silence=t
 
 vector<phone::phone> pronouncer::pronounce_word (string w) {
     vector<phone::phone> res;
-    if (w[w.length()-1] == '-') w = w.substr(0,w.length()-1);
+    char last = w[w.length()-1];
+    if (last == '-' || last == '\'') w = w.substr(0,w.length()-1);
     pronlist *p = main.get(w);
     if (p != NULL) {
         append_pron(res, p);
@@ -247,14 +248,10 @@ vector<phone::phone> pronouncer::pronounce (string s) {
         string w;
         is >> w;
 //        try {
-            cout << "\t\tpronouncing " << w << ": ";
             vector<phone::phone> word_pron = pronounce_word(w);
-            cout << "(" << word_pron.size() << "): ";
             for (int i=0; i < word_pron.size(); i++) {
-                cout << phone::names[word_pron[i]] << " ";
                 res.push_back (word_pron[i]);
             }
-            cout << endl;
 //        } catch (int ex) {
   //          cout << "Caught exception " << ex <<endl;
     //    }

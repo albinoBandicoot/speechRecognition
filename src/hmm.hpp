@@ -22,7 +22,8 @@
 #define LOG_HALF -0.6931471805f
 #define LOG_THIRD -1.09861228866f
 
-#define SIL_SKIP_P 0.3
+#define SIL_SKIP_P 0.3f
+#define MAX_ADV_PROB 0.95f
 
 #define LMSF 5      // language model scaling factor
 class hmm_state;
@@ -69,6 +70,8 @@ public:
     
     hmm (vector<phone::phone> ph, acoustic_model *ac);  // this builds the HMM for embedded training on a training sentence
     hmm (pronlex &pr, unigram_model &uni, acoustic_model *ac, state_model *smo);  // builds the big HMM representing the entire pronunciation lexicon
+    
+    int indexOf (hmm_state *);
     
     list<hmm_state*> viterbi (vector<featurevec*> fvs, float beam_width);
     void train_transition_probabilities (path p);

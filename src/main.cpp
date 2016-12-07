@@ -6,6 +6,7 @@
 #include "langmodel.hpp"
 #include "utils.hpp"
 #include "clip.hpp"
+#include "gmm.hpp"
 #include <dirent.h>
 
 #define VOXFORGE_DIR "/Users/Nathan/Documents/2016H/Security/project/audio/voxforge/"
@@ -38,12 +39,21 @@ int main( ){
     for (int i=0; i < folders.size(); i++) {
         ifstream prompts(VOXFORGE_DIR + folders[i] + string("etc/PROMPTS").c_str());
         while (prompts.peek() != EOF) {
-            ut.push_back (utterance(prompts, string(VOXFORGE_DIR), acm, pron));
+            try {
+                ut.push_back (utterance(prompts, string(VOXFORGE_DIR), acm, pron));
+            } catch (int ex) {
+                cout << "Caught exception " << ex << endl;
+            }
         }
     }
+    cout << "Got " << ut.size() << " utterances" << endl;
+    featurevec mu = mean (ut);
+    featurevec var = variance (ut, mu);
+    acm.initialize (mu, var);
+    
     cout << "Constructing lexicon HMM..." << endl;
     
-    hmm h(pron.prefixes, uni, &acm, new state_model(&hmm_ties));
+    hmm h(pron.main, uni, &acm, new state_model(&hmm_ties));
     cout << "Starting Embedded Training... " << endl;
     h.train (ut);
     

@@ -8,6 +8,7 @@
 
 #include "gmm.hpp"
 #include "hmm.hpp"
+#include "corpus.hpp"
 
 gaussian::gaussian () {
     zetasum = 0;
@@ -16,6 +17,15 @@ gaussian::gaussian () {
     for (int i=0; i < FV_LEN; i++) {
         mean[i] = 0;
         var[i] = 1;
+    }
+}
+
+void gaussian::initialize (featurevec &mu, featurevec &sigma2) {
+    for (int i=0; i < FV_LEN; i++) {
+        float sd = sqrt(sigma2[i]);
+        float K = 1.5f;
+        mean[i] = mu[i] + ofRandom(-K*sd, K*sd);
+        var[i] = sigma2[i] * ofRandom(0.8f,1.2f);
     }
 }
 
@@ -29,7 +39,7 @@ float gaussian::operator() (featurevec &fv) {
     float l2pi = log(M_2_PI);
     for (int i=0; i < FV_LEN; i++) {
         float t = (fv[i] - mean[i]);
-        res += l2pi + var[i] + (t*t)/var[i];
+        res += l2pi + log(var[i]) + (t*t)/var[i];
     }
     return -0.5f * res + logwt;
 }
@@ -62,37 +72,35 @@ void gaussian::divide_variances () {
     }
 }
 
-featurevec mean (vector<featurevec*> fvs) {
-    featurevec mu;
-    int N = fvs.size();
-    for (int i=0; i < N; i++) {
-        for (int j=0; j < FV_LEN; j++) {
-            mu[j] += (*fvs[i])[j] / N;
-        }
+void gaussian::blend (gaussian &g, float f) {
+    for (int i=0; i < FV_LEN; i++) {
+        mean[i] = mean[i]*f + g.mean[i]*(1-f);
+        var[i]  = var[i]*f  + g.var[i]*(1-f);
     }
-    return mu;
-}
-
-featurevec variance (vector<featurevec*> fvs, featurevec &mu) {
-    featurevec var;
-    int N = fvs.size();
-    for (int i=0; i < N; i++) {
-        for (int j=0; j < FV_LEN; j++) {
-            float f = (*fvs[i])[j] - mu[j];
-            var[j] += f*f / N;
-        }
-    }
-    return var;
+    set_wt (weight*f + g.weight*(1-f));
 }
 
 // ----------------------------------------------------------------------
- 
+
+gmm::gmm (gmm *g) : gaussians(*new vector<gaussian>()) {
+    for (int i=0; i < g->gaussians.size(); i++) {
+        gaussian ng = g->gaussians[i];    // this will make an independent copy.
+        gaussians.push_back(ng);
+    }
+}
+
 float gmm::operator() (featurevec &fv) {
     double res = 0;
     for (int i=0; i < gaussians.size(); i++) {
         res += exp(gaussians[i](fv));
     }
     return log(res);
+}
+
+void gmm::initialize (featurevec &mu, featurevec &var) {
+    for (int i=0; i < gaussians.size(); i++) {
+        gaussians[i].initialize(mu, var);
+    }
 }
 
 void gmm::clear () {
@@ -126,6 +134,12 @@ void gmm::divide_variances () {
     }
 }
 
+void gmm::blend (gmm *g, float f) {
+    for (int i=0; i < gaussians.size(); i++) {
+        gaussians[i].blend(g->gaussians[i], f);
+    }
+}
+
 // ----------------------------------------------------------------------
 
 acoustic_model::acoustic_model (phone::ties &t, int nmix) : ties(t) {
@@ -137,6 +151,18 @@ acoustic_model::acoustic_model (phone::ties &t, int nmix) : ties(t) {
         }
         ++c;
     } while (start < c);
+}
+
+acoustic_model::acoustic_model (acoustic_model *acm) : ties(acm->ties) {
+    for (acm_iter it = acm->begin(); it != acm->end(); it++) {
+        mixtures[it->first] = new gmm(it->second);
+    }
+}
+
+void acoustic_model::initialize (featurevec &mu, featurevec &var) {
+    for (acm_iter it = begin(); it != end(); it++) {
+        it->second->initialize(mu, var);
+    }
 }
 
 float acoustic_model::operator() (featurevec &fv, phone::context ph) {
@@ -170,6 +196,12 @@ void acoustic_model::divide_means () {
 void acoustic_model::divide_variances () {
     for (acm_iter it = begin(); it != end(); it++) {
         it->second->divide_variances();
+    }
+}
+
+void acoustic_model::blend (acoustic_model *a, float f) {
+    for (acm_iter it = begin(); it != end(); it++) {
+        it->second->blend(a->mixtures[it->first], f);
     }
 }
 

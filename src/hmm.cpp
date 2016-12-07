@@ -19,7 +19,7 @@ float hmm_state::get_prob (int i) const {
 }
 
 void hmm_state::set_prob (int i, float p) {
-    tr[i].second = p;
+    tr[i].second = log(p);
 }
 
 void hmm_state::set_adv_prob (float p) {
@@ -61,10 +61,11 @@ hmm::hmm (vector<phone::phone> ph, acoustic_model *ac) : acm(ac), temp_acm(NULL)
         } else if (i+1 < states.size()){
             states[i].tr.push_back (transition(&states[i], LOG_HALF));      // self loop
             states[i].tr.push_back (transition(&states[i+1], LOG_HALF));    // advance
-        } else {
-            states[i].tr.push_back (transition(&states[i], 0)); // self loop, probability 1 for last state
         }
     }
+    int e = states.size()-1;
+    states[e].tr.push_back (transition(&states[e], 0)); // self loop, probability 1 for last state
+
     for (int i=0; i < states.size(); i++) {
         phone::phone prev = (i == 0) ? phone::SIL : states[i-1].ph.first;
         phone::phone next = (i+1 == states.size()) ? phone::SIL : states[i+1].ph.first;
@@ -75,7 +76,7 @@ hmm::hmm (vector<phone::phone> ph, acoustic_model *ac) : acm(ac), temp_acm(NULL)
 // should we use logprobs for all the transition probabilities?
 // currently uses unigram probabilities
 hmm::hmm (pronlex &pr, unigram_model &uni, acoustic_model *ac, state_model *sm) : acm(ac), sm(sm){
-    temp_acm = new acoustic_model (*acm);   // copy
+    temp_acm = new acoustic_model (acm);   // copy
     states.push_back (hmm_state(phspec(phone::SIL, phone::BEGIN))); // this doesn't really represent silence, it's just the start state.
     for (map<string,pronlist>::iterator iter = pr.pr.begin(); iter != pr.pr.end(); iter++) {
         vector<phone::phone> p = (*iter).second.pronunciations[0]; // for now, ignore alternate pronunciations
@@ -110,15 +111,95 @@ hmm::hmm (pronlex &pr, unigram_model &uni, acoustic_model *ac, state_model *sm) 
     }
 }
 
+typedef map<int, float> layer;
+typedef map<int, int> backptr_map;
+typedef pair<int, float> cell;
+typedef layer::const_iterator liter;
+typedef vector<transition>::const_iterator triter;
+
+int hmm::indexOf (hmm_state *s) {
+    for (int i = 0; i < states.size(); i++) {
+        if (&states[i] == s) return i;
+    }
+}
+
+path hmm::viterbi (vector<featurevec*> fvs, float beam_width=1e10) {
+    layer map1, map2;
+    layer &curr = map1;
+    layer &next = map2;
+    path path;
+    vector<backptr_map> back;
+    float current_best_logp = -1e10f;
+    curr[0] = 0;   // initialize to just contain the start state, probability 1
+    
+    for (int i=0; i < fvs.size(); i++) {
+ //       cout << "layer " << i << "; " << curr.size() << " active states" << endl;
+        backptr_map bk;
+        float next_best_logp = -1e10f;
+        for (liter it = curr.begin(); it != curr.end(); it++) {   // loop over active states
+            hmm_state &src = states[it->first];
+            float logp = it->second;  // likelihood of best path up to src
+            if (logp < current_best_logp - beam_width) continue;    // early abort for unpromising candidates
+            for (int ti = 0; ti < src.tr.size(); ti++) { // loop over transitions from src
+                transition &t = src.tr[ti];
+                logp += t.second;    // multiply by transition probability
+                logp += (*acm)(*fvs[i], t.first->ctx);    // multiply by the acoustic model probability of observing feature vector i given the target state's phone
+                // now look up the target state in 'next'
+                int target = indexOf(t.first);
+                if (next.count(target) == 1) {
+                    // it was found. If logp is better than what's stored there, update.
+                    if (logp > next[target]) {
+                        next[target] = logp;
+                        next_best_logp = max(next_best_logp, logp);
+                        bk[target] = it->first;
+                    }
+                } else {
+                    next[target] = logp;    // this will create an entry for target
+                    next_best_logp = max(next_best_logp, logp);
+                    bk[target] = it->first;
+                }
+            }
+        }
+        back.push_back(bk);
+        current_best_logp = next_best_logp;
+        layer &temp = curr;
+        curr = next;
+        next = temp;
+        next.clear();
+    }
+    // ok, trellis has been computed and backpointer maps are filled. now reconstruct the path
+    // first find the best state in the last trellis layer
+    /*
+    float best_logp = -1e10f;
+    int best = -1;
+    for (liter it = curr.begin(); it != curr.end(); it++) {
+        if (it->second > best_logp) {
+            best_logp = it->second;
+            best = it->first;
+        }
+    }
+    if (best == -1) {
+        throw 1729;
+        // uh oh. all paths got pruned -- beam width too small (or something majorly wrong)
+    }
+     */
+    int best = states.size()-1;  // WARNING! THIS IS ONLY FOR TRAINING!
+    cout << "Viterbi path has logprob " << curr[best] << endl;
+    for (int i=fvs.size()-1; i >= 0; i--) {
+        path.push_front (&states[best]);
+        best = back[i][best];
+    }
+    return path;
+}
+
+/* The heart of the speech recognizer */
+/*
 typedef map<hmm_state*, float> layer;
 typedef map<hmm_state*, hmm_state*> backptr_map;
 typedef pair<hmm_state*, float> cell;
-typedef layer::iterator liter;
-typedef vector<transition>::iterator triter;
-
-/* The heart of the speech recognizer */
-
-path hmm::viterbi (vector<featurevec*> fvs, float beam_width=1e10) {
+typedef layer::const_iterator liter;
+typedef vector<transition>::const_iterator triter;
+path hmm::viterbi_old (vector<featurevec*> fvs, float beam_width=1e10) {
     layer map1, map2;
     layer &curr = map1;
     layer &next = map2;
@@ -128,17 +209,19 @@ path hmm::viterbi (vector<featurevec*> fvs, float beam_width=1e10) {
     curr[&states[0]] = 0;   // initialize to just contain the start state, probability 1
     
     for (int i=0; i < fvs.size(); i++) {
+        cout << "layer " << i << "; " << curr.size() << " active states" << endl;
         backptr_map bk;
         float next_best_logp = -1e10f;
         for (liter it = curr.begin(); it != curr.end(); it++) {   // loop over active states
             hmm_state *src = it->first;
             float logp = it->second;  // likelihood of best path up to src
             if (logp < current_best_logp - beam_width) continue;    // early abort for unpromising candidates
-            for (triter t = src->tr.begin(); t != src->tr.end(); t++) { // loop over transitions from src
-                logp += t->second;    // multiply by transition probability
-                logp += (*acm)(*fvs[i], t->first->ctx);    // multiply by the acoustic model probability of observing feature vector i given the target state's phoneme
+            for (int ti = 0; ti < src->tr.size(); ti++) { // loop over transitions from src
+                transition &t = src->tr[ti];
+                logp += t.second;    // multiply by transition probability
+                logp += (*acm)(*fvs[i], t.first->ctx);    // multiply by the acoustic model probability of observing feature vector i given the target state's phone
                 // now look up the target state in 'next'
-                hmm_state *target = t->first;
+                hmm_state *target = t.first;
                 if (next.count(target) == 1) {
                     // it was found. If logp is better than what's stored there, update.
                     if (logp > next[target]) {
@@ -180,7 +263,7 @@ path hmm::viterbi (vector<featurevec*> fvs, float beam_width=1e10) {
     }
     return path;
 }
-
+*/
 // this is applied to the training utterance HMMs. In these, there is no way to go
 // back to a previous state.
 void hmm::train_transition_probabilities (path p) {
@@ -190,7 +273,7 @@ void hmm::train_transition_probabilities (path p) {
     it++;
     while (it != p.end()) {
         if (*it != curr) {
-            curr->set_adv_prob (1.0f/count);
+            curr->set_adv_prob (min(MAX_ADV_PROB,1.0f/count));
             count = 0;
             curr = *it;
         }
@@ -201,17 +284,22 @@ void hmm::train_transition_probabilities (path p) {
 
 typedef pair<phone::context, int> mixcomp;
 
-#define EM_ITERS 10
+#define EM_ITERS 4
 // this is called on the lexicon HMM
 void hmm::train (vector<utterance> &ut) {
     vector<path> paths;
     int em_iter = 0;
     while (em_iter++ < EM_ITERS) {
-        cout << "Iteration " << em_iter << endl;
+        cout << "-------------------\n----------------------Iteration " << em_iter << "-------------------------\n--------------------" << endl;
         // compute Viterbi paths for each utterance
         paths.clear();
         for (int i=0; i < ut.size(); i++) {
-            paths.push_back(viterbi (ut[i].features));
+            path p = ut[i].hmm->viterbi (ut[i].features);
+            paths.push_back(p);
+            for (path::iterator li = p.begin(); li != p.end(); li++ ) {
+                cout << phone::names[(*li)->ph.first] << " ";
+            }
+            cout << endl;
         }
         // now update the transition probabilities for the utterance HMMs
         for (int i=0; i < ut.size(); i++) {
@@ -229,6 +317,7 @@ void hmm::train (vector<utterance> &ut) {
                 for (int m=0; m < g->gaussians.size(); m++) {
                     temp_acm->mixtures[rep]->gaussians[m].zetasum += g->gaussians[m].weight * g->gaussians[m].prob(*ut[i].features[obs_idx]);
                 }
+                it++;
                 obs_idx ++;
             }
         }
@@ -284,6 +373,8 @@ void hmm::train (vector<utterance> &ut) {
             }
         }
         temp_acm->divide_variances();
+        // blend in the current acm
+        temp_acm->blend (acm, 0.2f);    // second param is how much of temp_acm to keep. so this is 80% old, 20% new
         
         // swap references
         acoustic_model *temp = acm;
@@ -296,13 +387,13 @@ void hmm::train (vector<utterance> &ut) {
         path::iterator it = paths[i].begin();
         while (it != paths[i].end()) {
             sm->augment (*it);
+            it++;
         }
     }
     update_states();
 }
 
 // update the transitions to reflect the state model
-// TODO: use logprobs, or make other stuff not use them.
 void hmm::update_states () {
     for (int i=1; i < states.size(); i++) { // skip the start state
         float p = (*sm)(&states[i]);

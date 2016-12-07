@@ -13,7 +13,7 @@
 #include "clip.hpp"
 #include <vector>
 
-#define FV_LEN 39
+#define FV_LEN 26
 #define NPARAMS 13
 
 class featurevec {
