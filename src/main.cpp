@@ -9,15 +9,21 @@
 #include "gmm.hpp"
 #include <dirent.h>
 
+//#define DEMO
+#define MFCC
+//#define TRAIN
+
 //========================================================================
 int main( ){
-//	ofSetupOpenGL(1024,768,OF_WINDOW);			// <-------- setup the GL context
+#ifdef DEMO
+	ofSetupOpenGL(1024,768,OF_WINDOW);			// <-------- setup the GL context
 
 	// this kicks off the running of my app
 	// can be OF_WINDOW or OF_FULLSCREEN
 	// pass in width and height too:
-//	ofRunApp(new ofApp());
-    
+	ofRunApp(new ofApp());
+#endif
+#ifdef TRAIN
     // MODEL TRAINING
     char cwd[256];
     getcwd(cwd, 256);
@@ -56,9 +62,9 @@ int main( ){
     hmm h(pron.main, uni, &acm, new state_model(&hmm_ties));
     cout << "Starting Embedded Training... " << endl;
     h.train (ut);
-    
-    
-    /* // THIS IS WHAT IS NEEDED FOR COMPUTING MFCCs FOR NEW FILES
+#endif
+#ifdef MFCC
+    // THIS IS WHAT IS NEEDED FOR COMPUTING MFCCs FOR NEW FILES
     filterbank fbank = *mel_filterbank(7200, 48, 320, 16000);
     
     vector<string> folders = readlines (VOXFORGE_DIR + string("/_list"));
@@ -73,6 +79,9 @@ int main( ){
             string wav_file = VOXFORGE_DIR + folders[i] + string("wav/") + wavname + ".wav";
             cout << "Reading WAV " << wav_file << endl;
             Clip wav = read_wav (wav_file);
+            cout << "Clip amplitude: " << wav.rmsAmplitude() << endl;
+            wav.normalizeVolume (1);
+            cout << "normalized: " << wav.rmsAmplitude() << endl;
             
             try {
                 write_features(wav, 320, 160, fbank, VOXFORGE_DIR + folders[i] + string("mfc/") + wavname);
@@ -84,8 +93,7 @@ int main( ){
             }
         }
     }
-     
-    */
+#endif
      
     /*
     struct dirent *ent;

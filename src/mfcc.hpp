@@ -13,8 +13,10 @@
 #include "clip.hpp"
 #include <vector>
 
-#define FV_LEN 26
+#define FV_LEN 13
 #define NPARAMS 13
+
+#define NOISE_SEMGENTS 15
 
 class featurevec {
 public:
@@ -61,10 +63,10 @@ filterbank* mel_filterbank (float end, int n, int dft_bins=256, int sps=16000);
 
 float *dct (float *filtered, int len, int nparams);
 
-float *mfcc (Clip c, filterbank &fb);
+float *mfcc (Clip c, filterbank &fb, float *noise);
 
 vector<featurevec*> read_features (string fname, int WL);
 void write_features (Clip c, unsigned window_len, unsigned frame_shift, filterbank &fb, string fname);
-vector<featurevec*> get_features (Clip c, unsigned window_len, unsigned frame_shift, filterbank &fb);
+//vector<featurevec*> get_features (Clip c, unsigned window_len, unsigned frame_shift, filterbank &fb);
 
 #endif /* mfcc_hpp */

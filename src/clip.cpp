@@ -141,6 +141,11 @@ void Clip::operator*=(float f) {
     }
 }
 
+void Clip::normalizeVolume (float targetRMS) {
+    float currentRMS = rmsAmplitude();
+    *this *= (targetRMS/currentRMS);
+}
+
 double Clip::rmsAmplitude () const {
     double amp = 0;
     for (int i=0; i < length(); i++) {

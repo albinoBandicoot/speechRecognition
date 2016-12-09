@@ -77,6 +77,7 @@ public:
     void operator*=(Clip&);
     void operator*=(float);
 
+    void normalizeVolume (float targetRMS);
     
     double rmsAmplitude () const;
     void dft (float *out, bool stack=false) const;

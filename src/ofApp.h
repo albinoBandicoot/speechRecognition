@@ -24,6 +24,7 @@ public:
     float *spectra;
     float *cepstra;
     float *amplitudes;
+    float *noise;
     filterbank *fbank;
     int nframes;
     int nccoeffs;

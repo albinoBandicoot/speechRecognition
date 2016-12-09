@@ -74,14 +74,14 @@ Clip read_wav (string fname) {
     fread (&bps, 2, 1, in);
     
     if (aformat != 1) throw wavex_not_pcm;
-    cout << "Found " << nchannels << " channels, at " << sample_rate << "Hz; bit depth: " << bps << endl;
+//    cout << "Found " << nchannels << " channels, at " << sample_rate << "Hz; bit depth: " << bps << endl;
     
     fread (buf, 1, 4, in);
     if (strncmp (buf,"data",4)) throw wavex_bad;
     int data_len;
     fread (&data_len, 4, 1, in);
     int nframes = data_len / nchannels / (bps/8);
-    cout << "There are " << nframes << " frames totalling " << data_len << " bytes" << endl;
+    cout << "There are " << nframes << " audio frames" << endl;
     
     ClipArrayBuffer *abuf = new ClipArrayBuffer(nframes);
     for (int i=0; i < nframes; i++) {

@@ -48,8 +48,8 @@ float gaussian::logprob (featurevec &fv) {
     return (*this)(fv);
 }
 
-float gaussian::prob (featurevec &fv) {
-    return exp((*this)(fv));
+prob_t gaussian::prob (featurevec &fv) {
+    return exp((prob_t)(*this)(fv));
 }
 
 void gaussian::clear () {
@@ -89,7 +89,7 @@ gmm::gmm (gmm *g) : gaussians(*new vector<gaussian>()) {
     }
 }
 
-float gmm::operator() (featurevec &fv) {
+logprob_t gmm::operator() (featurevec &fv) {
     return gaussians[0](fv);
     /*
     double res = 0;
@@ -168,7 +168,7 @@ void acoustic_model::initialize (featurevec &mu, featurevec &var) {
     }
 }
 
-float acoustic_model::operator() (featurevec &fv, phone::context ph) {
+logprob_t acoustic_model::operator() (featurevec &fv, phone::context ph) {
     return (*(*mixtures.find(ties(ph))).second)(fv);
 }
 

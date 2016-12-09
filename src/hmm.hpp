@@ -23,9 +23,9 @@
 #define LOG_THIRD -1.09861228866f
 
 #define SIL_SKIP_P 0.3f
-#define MAX_ADV_PROB 0.75f
-#define HMM_BLEND_FAC 0.07f
-#define GMM_BLEND_FAC 0.07f
+#define MAX_ADV_PROB 0.55f
+#define HMM_BLEND_FAC 0.2f
+#define GMM_BLEND_FAC 0.2f
 
 #define LMSF 5      // language model scaling factor
 class hmm_state;

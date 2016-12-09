@@ -15,6 +15,9 @@
 #include "mfcc.hpp"
 #include "pronounce.hpp"
 
+typedef long double prob_t;
+typedef float logprob_t;
+
 class gaussian {
 public:
     float weight;
@@ -22,14 +25,14 @@ public:
     float mean[FV_LEN];
     float var[FV_LEN];
     
-    double zetasum;
+    prob_t zetasum;
     
     gaussian ();
     void initialize (featurevec &, featurevec &);
     void set_wt (float wt);
-    float operator() (featurevec &fv);
-    float prob (featurevec &fv);
-    float logprob (featurevec &fv);
+    logprob_t operator() (featurevec &fv);
+    prob_t prob (featurevec &fv);
+    logprob_t logprob (featurevec &fv);
 
     void clear();
     void divide_means();
@@ -40,7 +43,7 @@ public:
 class gmm {
 public:
     vector<gaussian> &gaussians;
-    double zetasum;
+    prob_t zetasum;
     
     gmm (int n) : gaussians(*new vector<gaussian>()) {
         for (int i=0; i < n; i++) {
@@ -50,7 +53,7 @@ public:
     
     gmm (gmm *g) ;
     
-    float operator() (featurevec &fv);
+    logprob_t operator() (featurevec &fv);
     void initialize (featurevec &, featurevec &);
 
     void clear ();
@@ -71,7 +74,7 @@ public:
     acoustic_model (phone::ties &t, int nmix = 1);
     acoustic_model (acoustic_model *acm);
     
-    float operator() (featurevec &fv, phone::context ph);
+    logprob_t operator() (featurevec &fv, phone::context ph);
     void initialize (featurevec &, featurevec &);
 
     void clear();

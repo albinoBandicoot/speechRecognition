@@ -50,6 +50,10 @@ void ofApp::setup(){
     nccoeffs = 13;//fbank->length();
     nscoeffs = 80;
     xscale = 1;
+    filter high = fbank->filters.back();
+    int bin_max = (int) (high.center + high.width) + 1;
+    noise = new float[bin_max];
+    for (int i=0; i < bin_max; i++) noise[i] = 0;
     
     ofSoundStreamSetup(0, 2, this, 44100, analysis_bufsize, 4);
     ofSoundStreamStop();
@@ -200,18 +204,8 @@ void ofApp::stopRecording () {
     }
     // first normalize volume
     Clip all = Clip (*recording);
-    Clip sl = Clip (all, 0, 5000);
-    float max_amp = 0;
-    int ct = 0;
-    while (sl.slide(1500)) {
-        max_amp += sl.rmsAmplitude();
-        ct ++;
-    }
-    max_amp /= ct;
-    float rms_amp = all.rmsAmplitude();
-    cout << "RMS amplitude = " << rms_amp << endl;
-    cout << "Max smoothed amplitude = " << max_amp << endl;
-    all *= 200 / max_amp;
+    all.normalizeVolume(1);
+    
     cout << "Doing DFTs" << endl;
     nframes = recording->length()*buf_shift_frac / analysis_bufsize;
     spectra = new float[nframes * nscoeffs];
@@ -223,13 +217,29 @@ void ofApp::stopRecording () {
 //    float temp[analysis_bufsize];
 //    float kernel[7] = {0.1, 0.3, 0.6, 1.0, 0.6, 0.3, 0.1};
     float *s = new float[nscoeffs];
+    
+    Clip noise_segment = Clip (all, 0, analysis_bufsize);
+    noise_segment.window = hamming_window;
+    
+    filter high = fbank->filters.back();
+    int bin_max = (int) (high.center + high.width) + 1;
+    
+    for (int i=0; i < bin_max; i++) noise[i] = 0;
+    for (int i=0 ; i < NOISE_SEMGENTS; i++) {
+        noise_segment.partial_dft(noise, bin_max, true);
+        noise_segment.slide (analysis_bufsize/buf_shift_frac);
+        
+    }
+    for (int i=0; i < bin_max; i++) noise[i] /= NOISE_SEMGENTS;
+    
+    
     for (int i=0; i < nframes; i++) {
         amplitudes[i] = slice.rmsAmplitude();
         
         slice.partial_dft(s, nscoeffs);
         memcpy (&spectra[i*nscoeffs], s, nscoeffs*sizeof(float));
         
-        float *m = mfcc(slice, *fbank);
+        float *m = mfcc(slice, *fbank, noise);
         memcpy(&cepstra[i*nccoeffs], m, nccoeffs*sizeof(float));
         delete[] m;
         /*

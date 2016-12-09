@@ -68,7 +68,7 @@ int argmax (T *a, int len) {
 template<class T>
 void log (T *buf, int len) {
     for (int i=0; i < len; i++) {
-        buf[i] = log(buf[i] + 0.01f);
+        buf[i] = log(buf[i] + 0.1f);
     }
 }
 
