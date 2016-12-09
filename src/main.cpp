@@ -9,7 +9,6 @@
 #include "gmm.hpp"
 #include <dirent.h>
 
-#define VOXFORGE_DIR "/Users/Nathan/Documents/2016H/Security/project/audio/voxforge/"
 //========================================================================
 int main( ){
 //	ofSetupOpenGL(1024,768,OF_WINDOW);			// <-------- setup the GL context
@@ -19,6 +18,7 @@ int main( ){
 	// pass in width and height too:
 //	ofRunApp(new ofApp());
     
+    // MODEL TRAINING
     char cwd[256];
     getcwd(cwd, 256);
     cout << "Current dir: " << cwd << endl;
@@ -58,7 +58,7 @@ int main( ){
     h.train (ut);
     
     
-    /* THIS IS WHAT IS NEEDED FOR COMPUTING MFCCs FOR NEW FILES
+    /* // THIS IS WHAT IS NEEDED FOR COMPUTING MFCCs FOR NEW FILES
     filterbank fbank = *mel_filterbank(7200, 48, 320, 16000);
     
     vector<string> folders = readlines (VOXFORGE_DIR + string("/_list"));
@@ -84,8 +84,8 @@ int main( ){
             }
         }
     }
-     */
      
+    */
      
     /*
     struct dirent *ent;

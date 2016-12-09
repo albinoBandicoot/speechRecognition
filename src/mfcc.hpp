@@ -63,7 +63,7 @@ float *dct (float *filtered, int len, int nparams);
 
 float *mfcc (Clip c, filterbank &fb);
 
-vector<featurevec*> read_features (string fname);
+vector<featurevec*> read_features (string fname, int WL);
 void write_features (Clip c, unsigned window_len, unsigned frame_shift, filterbank &fb, string fname);
 vector<featurevec*> get_features (Clip c, unsigned window_len, unsigned frame_shift, filterbank &fb);
 

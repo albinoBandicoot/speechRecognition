@@ -190,12 +190,12 @@
 			isa = PBXGroup;
 			children = (
 				E4B69E1D0A3A1BDC003C02F2 /* main.cpp */,
+				E4B69E1E0A3A1BDC003C02F2 /* ofApp.cpp */,
+				E4B69E1F0A3A1BDC003C02F2 /* ofApp.h */,
 				D8140BAB1DECA53B0054AF69 /* langmodel.cpp */,
 				D8140BAC1DECA53B0054AF69 /* langmodel.hpp */,
 				D8140BA81DEBE64E0054AF69 /* corpus.cpp */,
 				D8140BA91DEBE64E0054AF69 /* corpus.hpp */,
-				E4B69E1E0A3A1BDC003C02F2 /* ofApp.cpp */,
-				E4B69E1F0A3A1BDC003C02F2 /* ofApp.h */,
 				D83982B51DE69A4A003DE913 /* gmm.cpp */,
 				D83982B61DE69A4A003DE913 /* gmm.hpp */,
 				D83982B81DE6ACED003DE913 /* hmm.cpp */,

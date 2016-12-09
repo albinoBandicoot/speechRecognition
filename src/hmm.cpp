@@ -14,12 +14,16 @@ hmm_state::hmm_state (phspec p) : ctx(phone::context(p.first)){
     ph = p;
 }
 
-float hmm_state::get_prob (int i) const {
+float hmm_state::get_logprob (int i) const {
     return tr[i].second;
 }
 
 void hmm_state::set_prob (int i, float p) {
     tr[i].second = log(p);
+}
+
+float hmm_state::get_adv_prob () const {
+    return exp(tr[1].second);
 }
 
 void hmm_state::set_adv_prob (float p) {
@@ -29,7 +33,7 @@ void hmm_state::set_adv_prob (float p) {
 }
 
 float state_model::operator() (hmm_state *state) {
-    if (ties == NULL) return state->get_prob(1);    // hmm, this is a logprob, isn't it
+    if (ties == NULL) return state->get_logprob(1);    // hmm, this is a logprob, isn't it
     phone::context c = (*ties)(state->ctx);
     if (counts.count(c) == 0) return 0.5f;
     return probsums[c] / counts[c];
@@ -38,7 +42,7 @@ float state_model::operator() (hmm_state *state) {
 void state_model::augment (hmm_state *state) {
     if (ties == NULL) return;
     phone::context c = (*ties)(state->ctx);
-    probsums[c] += state->get_prob(1);
+    probsums[c] += state->get_adv_prob();
     counts[c] += 1;
 }
 
@@ -70,6 +74,9 @@ hmm::hmm (vector<phone::phone> ph, acoustic_model *ac) : acm(ac), temp_acm(NULL)
         phone::phone prev = (i == 0) ? phone::SIL : states[i-1].ph.first;
         phone::phone next = (i+1 == states.size()) ? phone::SIL : states[i+1].ph.first;
         states[i].ctx = phone::context (prev, states[i].ph.first, next);
+    }
+    for (int i=0; i < states.size(); i++) {
+        idx_map[&states[i]] = i;
     }
 }
 
@@ -109,21 +116,27 @@ hmm::hmm (pronlex &pr, unigram_model &uni, acoustic_model *ac, state_model *sm) 
         states[e].ctx = phone::context (states[e-1].ph.first, phone::SIL, phone::SIL);
         states[e].word = &(iter->first);
     }
+    for (int i=0; i < states.size(); i++) {
+        idx_map[&states[i]] = i;
+    }
 }
 
-typedef map<int, float> layer;
-typedef map<int, int> backptr_map;
+typedef unordered_map<int, float> layer;
+typedef unordered_map<int, int> backptr_map;
 typedef pair<int, float> cell;
 typedef layer::const_iterator liter;
 typedef vector<transition>::const_iterator triter;
 
 int hmm::indexOf (hmm_state *s) {
+    return idx_map[s];
+    /*
     for (int i = 0; i < states.size(); i++) {
         if (&states[i] == s) return i;
     }
+     */
 }
 
-path hmm::viterbi (vector<featurevec*> fvs, float beam_width=1e10) {
+path hmm::viterbi (vector<featurevec*> fvs, float& prevp, float beam_width=1e10) {
     layer map1, map2;
     layer &curr = map1;
     layer &next = map2;
@@ -184,7 +197,13 @@ path hmm::viterbi (vector<featurevec*> fvs, float beam_width=1e10) {
     }
      */
     int best = states.size()-1;  // WARNING! THIS IS ONLY FOR TRAINING!
-    cout << "Viterbi path has logprob " << curr[best] << endl;
+    if (curr.count(best) == 0) {
+        cout << "NO PATH" << endl;
+        return path;
+    }
+    float nlp = curr[best] / fvs.size();
+    cout << "Viterbi path has normalized logprob " << nlp << "\tdelta: " << nlp - prevp << endl;
+    prevp = nlp;
     for (int i=fvs.size()-1; i >= 0; i--) {
         path.push_front (&states[best]);
         best = back[i][best];
@@ -273,7 +292,7 @@ void hmm::train_transition_probabilities (path p) {
     it++;
     while (it != p.end()) {
         if (*it != curr) {
-            curr->set_adv_prob (min(MAX_ADV_PROB,1.0f/count));
+            curr->set_adv_prob (HMM_BLEND_FAC*min(MAX_ADV_PROB,1.0f/count) + (1-HMM_BLEND_FAC)*curr->get_adv_prob());
             count = 0;
             curr = *it;
         }
@@ -284,22 +303,25 @@ void hmm::train_transition_probabilities (path p) {
 
 typedef pair<phone::context, int> mixcomp;
 
-#define EM_ITERS 4
+#define EM_ITERS 80
 // this is called on the lexicon HMM
 void hmm::train (vector<utterance> &ut) {
     vector<path> paths;
+    vector<float> prevp(ut.size()); 
     int em_iter = 0;
     while (em_iter++ < EM_ITERS) {
         cout << "-------------------\n----------------------Iteration " << em_iter << "-------------------------\n--------------------" << endl;
         // compute Viterbi paths for each utterance
         paths.clear();
         for (int i=0; i < ut.size(); i++) {
-            path p = ut[i].hmm->viterbi (ut[i].features);
+            path p = ut[i].hmm->viterbi (ut[i].features, prevp[i], 1e10);
             paths.push_back(p);
-            for (path::iterator li = p.begin(); li != p.end(); li++ ) {
-                cout << phone::names[(*li)->ph.first] << " ";
+            if (i < 2) {
+                for (path::iterator li = p.begin(); li != p.end(); li++ ) {
+                    cout << phone::names[(*li)->ph.first] << " ";
+                }
+                cout << endl;
             }
-            cout << endl;
         }
         // now update the transition probabilities for the utterance HMMs
         for (int i=0; i < ut.size(); i++) {
@@ -374,7 +396,7 @@ void hmm::train (vector<utterance> &ut) {
         }
         temp_acm->divide_variances();
         // blend in the current acm
-        temp_acm->blend (acm, 0.2f);    // second param is how much of temp_acm to keep. so this is 80% old, 20% new
+        temp_acm->blend (acm, GMM_BLEND_FAC);    // second param is how much of temp_acm to keep. so this is 80% old, 20% new
         
         // swap references
         acoustic_model *temp = acm;

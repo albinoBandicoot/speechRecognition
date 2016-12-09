@@ -90,11 +90,14 @@ gmm::gmm (gmm *g) : gaussians(*new vector<gaussian>()) {
 }
 
 float gmm::operator() (featurevec &fv) {
+    return gaussians[0](fv);
+    /*
     double res = 0;
     for (int i=0; i < gaussians.size(); i++) {
         res += exp(gaussians[i](fv));
     }
     return log(res);
+     */
 }
 
 void gmm::initialize (featurevec &mu, featurevec &var) {

@@ -11,6 +11,9 @@
 using namespace std;
 
 featurevec::featurevec () {
+    for (int i=0; i < NPARAMS; i++) {
+        coeffs[i] = deltas[i] = delta2s[i] = 0;
+    }
 }
 
 featurevec::featurevec (float *c) {
@@ -146,11 +149,14 @@ float *dct (float *filtered, int len, int nparams) {
 
 // the clip should already be pre-emphasized, if desired
 // assumes the last filter has the highest center+width value.
-float *mfcc (Clip c, filterbank &fb) {
+float *mfcc (Clip c, filterbank &fb, float *noise) {
     filter high = fb.filters.back();
     int bin_max = (int) (high.center + high.width) + 1;
     float dft[bin_max];
     c.partial_dft(dft, bin_max);
+    for (int i=0; i < bin_max; i++) {
+        dft[i] = fmax(0, dft[i] - noise[i]);
+    }
     float *filtered = fb(dft);
     log(filtered, fb.length());
     float *coeffs = dct(filtered, fb.length(), NPARAMS);
@@ -183,7 +189,7 @@ void write_features (Clip c, unsigned window_len, unsigned frame_shift, filterba
     fclose (out);
 }
 
-vector<featurevec*> read_features (string fname) {
+vector<featurevec*> read_features (string fname, int WL=2) {
     cout << "\treading features... ";
     FILE *in = fopen (fname.c_str(), "r");
     if (in == NULL) throw 1;
@@ -191,14 +197,32 @@ vector<featurevec*> read_features (string fname) {
     fread (&n, 4, 1, in);
     cout << "found " << n << " FVs" << endl;
     vector<featurevec*> fvs;
+    vector<featurevec> raw;
     for (int i=0; i < n; i++) {
-        featurevec *fv = new featurevec();
+        featurevec fv;
         for (int q=0; q < NPARAMS; q++) {
-            fread (&(fv->coeffs[q]), 4, 1, in);
+            fread (&(fv.coeffs[q]), 4, 1, in);
         }
-        fvs.push_back (fv);
+        raw.push_back(fv);
     }
     fclose (in);
+    
+    for (int i=0; i < n; i++) {
+        fvs.push_back (new featurevec());
+        int NF = 0;
+        for (int w = -WL; w <= WL; w++) {
+            int wt = WL - abs(w) + 1;
+            if (i + w >= 0 && i + w < n ) {
+                NF += wt;
+                for (int j=0; j < 13; j++) {
+                    fvs[i]->coeffs[j] += wt * raw[i+w].coeffs[j];
+                }
+            }
+        }
+        for (int j=0; j < 13; j++) {
+            fvs[i]->coeffs[j] /= NF;
+        }
+    }
     compute_deltas (fvs);
     return fvs;
 }

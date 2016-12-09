@@ -7,6 +7,8 @@
 #include "mfcc.hpp"
 #include "pronounce.hpp"
 
+#define VOXFORGE_DIR "/Users/Nathan/Documents/2016H/Security/project/audio/voxforge/"
+
 class ofApp : public ofBaseApp{
     
 public:
@@ -20,10 +22,15 @@ public:
     ClipArrayBuffer *noise_spectrum;
     
     float *spectra;
+    float *cepstra;
     float *amplitudes;
     filterbank *fbank;
     int nframes;
-    int nparams;
+    int nccoeffs;
+    int nscoeffs;
+    float xscale, xshift;
+    
+    featurevec mu, sigma;
     
     enum state_t {
         START, NOISE_PROF, RECORD, COMPUTE, WAIT
@@ -31,8 +38,8 @@ public:
     state_t state = START;
     int noise_bufs = 40;
     int noise_bufs_done = 0;
-    int analysis_bufsize = 1024;
-    int buf_shift_frac = 4;
+    int analysis_bufsize = 768;
+    int buf_shift_frac = 2;
     
     pronlex prlex;
     
