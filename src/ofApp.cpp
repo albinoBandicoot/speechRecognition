@@ -181,6 +181,9 @@ void ofApp::draw(){
     for (int i=0; i < nframes-1; i++) {
         ofDrawLine(xs+i*xperbuf, ofMap(amplitudes[i],0,1,ys,ys-500,true), xs+(i+1)*xperbuf, ofMap(amplitudes[i+1],0,1,ys,ys-500,true));
     }
+    char str[64] = {0};
+    sprintf(str, "%f", mouseval);
+    ofDrawBitmapString(str, 50, 680);
     gui.draw();
 }
 
@@ -214,8 +217,7 @@ void ofApp::stopRecording () {
     all.preemphasis (0.96f);
     Clip slice = Clip (*recording, 0, analysis_bufsize);
     slice.window = hamming_window;
-//    float temp[analysis_bufsize];
-//    float kernel[7] = {0.1, 0.3, 0.6, 1.0, 0.6, 0.3, 0.1};
+
     float *s = new float[nscoeffs];
     
     Clip noise_segment = Clip (all, 0, analysis_bufsize);
@@ -288,7 +290,19 @@ void ofApp::keyReleased(int key){
 
 //--------------------------------------------------------------
 void ofApp::mouseMoved(int x, int y ){
-
+    float ypb = 250/13.0;
+    float yp = y = 650 + ypb - y;
+    yp = (13*yp)/250;
+    if (y >= 0 && y < 13) {
+        float xp = x - (50 - xshift);
+        xp /= xscale;
+        xp /= 900;
+        xp *= nframes;
+        
+        if (cepstra != NULL) {
+            mouseval = yp; //cepstra[((int) xp)*nframes + yp];
+        }
+    }
 }
 
 //--------------------------------------------------------------

@@ -29,6 +29,35 @@ float& featurevec::operator[] (int i)  {
     return coeffs[i];
 }
 
+void featurevec::operator+= (featurevec &f) {
+    for (int i=0; i < FV_LEN; i++) {
+        (*this)[i] += f[i];
+    }
+}
+
+void featurevec::operator*= (float f) {
+    for (int i=0; i < FV_LEN; i++) {
+        (*this)[i] *= f;
+    }
+}
+
+float featurevec::dist (featurevec &f) {
+    float d = 0;
+    for (int i=0; i < FV_LEN; i++) {
+        float diff = (*this)[i] - f[i];
+        d += diff*diff;
+    }
+    return sqrt(d);
+}
+
+featurevec featurevec::normalize (featurevec &mu, featurevec &var) {
+    featurevec res;
+    for (int i=0 ; i < FV_LEN; i++) {
+        res[i] = ((*this)[i] - mu[i]) / sqrt(var[i]);
+    }
+    return res;
+}
+
 void featurevec::compute_deltas (vector<featurevec*> fvs, int i) {
     int j = i-1;
     int k = i+1;
@@ -56,6 +85,14 @@ void compute_deltas (vector<featurevec*> fvs) {
     for (int i=0; i < fvs.size(); i++) {
         fvs[i]->compute_delta2s(fvs, i);
     }
+}
+
+featurevec random_fv (featurevec &mu, featurevec &var) {
+    featurevec res;
+    for (int i=0; i < FV_LEN; i++) {
+        res[i] = rand_gaussian (mu[i], var[i]);
+    }
+    return res;
 }
 
 // -----------------------------------
@@ -141,7 +178,7 @@ float *dct (float *filtered, int len, int nparams) {
     for (int j=0; j < nparams; j++) {
         res[j] = 0;
         for (int i=0; i < len; i++){
-            res[j] += (filtered[i]) * cos(j*(i-0.5f)*M_PI/len);
+            res[j] += (filtered[i]) * cos(j*(i-0.0f)*M_PI/len);
         }
     }
     return res;

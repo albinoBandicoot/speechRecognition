@@ -7,7 +7,7 @@
 //
 
 #include "utils.hpp"
-
+#include "ofMain.h"
 /* Windowing functions */
 
 float rectangular_window (int x, int len) {
@@ -20,6 +20,21 @@ float hanning_window (int x, int len) {
 
 float hamming_window (int x, int len) {
     return 0.54f + 0.46 * cos(2*M_PI*x/(len-1));
+}
+
+
+// --------
+#define BINOMIAL_SUMMANDS 20
+float rand_gaussian (float mu, float variance) {
+    float res = 0;
+    for (int i=0; i < BINOMIAL_SUMMANDS; i++) {
+        res += ofRandom(-1,1);
+    }
+    // res has mean 0 and variance (1/3) * BINOMIAL_SUMMANDS
+    res *= sqrt (variance / (BINOMIAL_SUMMANDS/3.0));
+    // now res has variance 'variance'
+    res += mu;
+    return res;
 }
 
 vector<string> readlines (const char *fname) {

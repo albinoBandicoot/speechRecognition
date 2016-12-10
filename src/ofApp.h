@@ -31,6 +31,7 @@ public:
     int nscoeffs;
     float xscale, xshift;
     
+    float mouseval;
     featurevec mu, sigma;
     
     enum state_t {

@@ -20,21 +20,8 @@ float rectangular_window (int,int);
 float hanning_window (int,int);
 float hamming_window (int,int);
 
+float rand_gaussian (float mu, float sigma);
 
-
-
-
-/*
-template<class T>
-T min (T a, T b) {
-    return a < b ? a : b;
-}
-
-template<class T>
-T max (T a, T b) {
-    return a > b ? a : b;
-}
-*/
 template<class T>
 T min (T *a, int len) {
     T best = a[0];
@@ -68,7 +55,7 @@ int argmax (T *a, int len) {
 template<class T>
 void log (T *buf, int len) {
     for (int i=0; i < len; i++) {
-        buf[i] = log(buf[i] + 0.1f);
+        buf[i] = log(buf[i] + 1);
     }
 }
 

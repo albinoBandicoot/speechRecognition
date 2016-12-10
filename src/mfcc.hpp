@@ -28,11 +28,19 @@ public:
     featurevec (float *c);
     
     float& operator[] (int i);
+    void operator+= (featurevec &);
+    void operator*= (float);
+    
+    float dist (featurevec &f);
+    
+    featurevec normalize (featurevec &mu, featurevec &sigma) ;
     
     void compute_deltas (vector<featurevec*> fvs, int i);
     void compute_delta2s (vector<featurevec*> fvs, int i);
 
 };
+
+featurevec random_fv (featurevec &mu, featurevec &var);
 
 class filter {
 public:

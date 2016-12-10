@@ -10,8 +10,8 @@
 #include <dirent.h>
 
 //#define DEMO
-#define MFCC
-//#define TRAIN
+//#define MFCC
+#define TRAIN
 
 //========================================================================
 int main( ){
