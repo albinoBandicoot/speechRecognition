@@ -20,6 +20,9 @@ using namespace std;
 
 class hmm;
 
+/* The utterance class represents one training or test utterance. It includes the MFCC vectors, a pointer to the 
+ HMM built from it (if it's a training utterance), and the text and pronunciation (filled in by reading from a 
+ file for training, filled in by speech recognition for test sentences) */
 class utterance {
 public:
     string text;

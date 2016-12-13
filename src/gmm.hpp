@@ -15,15 +15,19 @@
 #include "mfcc.hpp"
 #include "pronounce.hpp"
 
-typedef long double prob_t;
+/* Everything about the acoustic model. Defining individual gaussian densities, mixtures, and packaging 
+ everything together (including parameter tying) into the acoustic_model type */
+
+typedef long double prob_t; // hopefully 80-bit floats are enough precision. Probabilities can get pretty small, and gaussian densities with low variance can get pretty large
 typedef float logprob_t;
 
+// a single, multivariate gaussian distribution
 class gaussian {
 public:
     float weight;
     float logwt;
-    float mean[FV_LEN];
-    float var[FV_LEN];
+    prob_t mean[FV_LEN];
+    prob_t var[FV_LEN];
     
     prob_t zetasum;
     
@@ -40,6 +44,7 @@ public:
     void blend (gaussian &g, float f);
 };
 
+// one gaussian mixture model. essentially a list of gaussians
 class gmm {
 public:
     vector<gaussian> &gaussians;
@@ -66,6 +71,7 @@ public:
 
 typedef map<phone::context,gmm*>::iterator acm_iter;
 
+// the acoustic_model maps phone contexts to their appropriate mixtures according to a parameter tying model 'ties'
 class acoustic_model {
 public:
     map<phone::context, gmm*> mixtures;

@@ -2,32 +2,28 @@
 #include "ofApp.h"
 #include "mfcc.hpp"
 #include "wav.hpp"
-#include "corpus.hpp"
+#include "utterance.hpp"
 #include "langmodel.hpp"
 #include "utils.hpp"
 #include "clip.hpp"
 #include "gmm.hpp"
 #include <dirent.h>
 
-//#define DEMO
-//#define MFCC
-#define TRAIN
+// select one of the three lines below depending on what you want the main method to do.
+#define DEMO  // run the feature extraction demo
+//#define MFCC  // write out MFCCs for Voxforge data
+//#define TRAIN   // train the model
 
 //========================================================================
 int main( ){
 #ifdef DEMO
 	ofSetupOpenGL(1024,768,OF_WINDOW);			// <-------- setup the GL context
 
-	// this kicks off the running of my app
-	// can be OF_WINDOW or OF_FULLSCREEN
-	// pass in width and height too:
+	// this kicks off the running of the GUI
 	ofRunApp(new ofApp());
 #endif
 #ifdef TRAIN
     // MODEL TRAINING
-    char cwd[256];
-    getcwd(cwd, 256);
-    cout << "Current dir: " << cwd << endl;
     cout << "Loading pronunciation lexicon..." << endl;
     pronouncer pron("../res/lexicon/cmu.txt", "../res/lexicon/prefixes.txt", "../res/lexicon/suffixes.txt");
     cout << "Loading language model..." << endl;
@@ -94,17 +90,4 @@ int main( ){
         }
     }
 #endif
-     
-    /*
-    struct dirent *ent;
-    DIR *dp;
-    dp = opendir ("/Users/Nathan/Documents/2016H/Security/project/audio/voxforge");
-    if (dp != NULL) {
-        while ((ent = readdir(dp))) {
-            DIR *subdir;
-            subdir = opendir(ent->d_name);
-            while ((sub))
-        }
-    }
-*/
 }

@@ -6,9 +6,11 @@
 //
 //
 
-#include "corpus.hpp"
+#include "utterance.hpp"
 #include "hmm.hpp"
 
+// the input stream 'in' should be for one of the PROMPTS files in the Voxforge data.
+// path_base is the base of the file path up to and including the submission folder.
 utterance::utterance (istream &in, string path_base, acoustic_model &acm, pronouncer &pr) {
     string mfcc_fname;
     in >> mfcc_fname;
@@ -25,6 +27,7 @@ utterance::utterance (istream &in, string path_base, acoustic_model &acm, pronou
     cout << endl;
 }
 
+// methods for computing the mean and variance of a list of feature vectors.
 
 featurevec mean (vector<utterance> &ut) {
     featurevec mu;

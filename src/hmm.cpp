@@ -7,7 +7,7 @@
 //
 
 #include "hmm.hpp"
-#include "corpus.hpp"
+#include "utterance.hpp"
 #include <algorithm>
 
 hmm_state::hmm_state (phspec p) : ctx(phone::context(p.first)){
@@ -22,18 +22,22 @@ void hmm_state::set_prob (int i, float p) {
     tr[i].second = log(p);
 }
 
+// get the probability of advancing to the next state
 float hmm_state::get_adv_prob () const {
     return exp(tr[1].second);
 }
 
+// set the advance probability
 void hmm_state::set_adv_prob (float p) {
     float avail = tr.size() == 3 ? (1 - SIL_SKIP_P) : 1;
     set_prob (0, (1-p)*avail);
     set_prob (1, p*avail);
 }
 
+// ------- STATE MODEL ------------
+
 float state_model::operator() (hmm_state *state) {
-    if (ties == NULL) return state->get_logprob(1);    // hmm, this is a logprob, isn't it
+    if (ties == NULL) return state->get_logprob(1);
     phone::context c = (*ties)(state->ctx);
     if (counts.count(c) == 0) return 0.5f;
     return probsums[c] / counts[c];
@@ -46,6 +50,9 @@ void state_model::augment (hmm_state *state) {
     counts[c] += 1;
 }
 
+// ---------- HMM --------------
+
+// construct the HMM for the training sentence with pronunciation 'ph'
 hmm::hmm (vector<phone::phone> ph, acoustic_model *ac) : acm(ac), temp_acm(NULL), sm(new state_model(NULL)) {
     for (int i=0; i < ph.size(); i++) {
         if (USE_SUBPHONES and ph[i] != phone::SIL) {
@@ -80,7 +87,7 @@ hmm::hmm (vector<phone::phone> ph, acoustic_model *ac) : acm(ac), temp_acm(NULL)
     }
 }
 
-// should we use logprobs for all the transition probabilities?
+// constructs the HMM for the lexicon, which would be used for actually recognizing speech.
 // currently uses unigram probabilities
 hmm::hmm (pronlex &pr, unigram_model &uni, acoustic_model *ac, state_model *sm) : acm(ac), sm(sm){
     temp_acm = new acoustic_model (acm);   // copy
@@ -121,21 +128,25 @@ hmm::hmm (pronlex &pr, unigram_model &uni, acoustic_model *ac, state_model *sm) 
     }
 }
 
-typedef unordered_map<int, float> layer;
-typedef unordered_map<int, int> backptr_map;
+// types for use in the Viterbi algorithm
+// the 'layer' and 'backptr_map' types are maps rather than vectors or arrays, since with beam search,
+// ideally only a small fraction of the nodes are active (have non-zero value). A sparse representation
+// vastly reduces the amount of time and space required.
+
+typedef unordered_map<int, float> layer;        // one column of the trellis. maps index to node value
+typedef unordered_map<int, int> backptr_map;    // a map of backwards pointers, to reconstruct the path.
 typedef pair<int, float> cell;
 typedef layer::const_iterator liter;
 typedef vector<transition>::const_iterator triter;
 
+// get the index of state s
 int hmm::indexOf (hmm_state *s) {
     return idx_map[s];
-    /*
-    for (int i = 0; i < states.size(); i++) {
-        if (&states[i] == s) return i;
-    }
-     */
 }
 
+// the Viterbi Beam Search algorithm. The default beam width is high enough that it is equivalent to
+// doing the regular Viterbi algorithm. Returns the most likely hidden state sequence given the observation
+// sequence 'fvs'
 path hmm::viterbi (vector<featurevec*> fvs, float& prevp, float beam_width=1e10) {
     layer map1, map2;
     layer &curr = map1;
@@ -146,7 +157,6 @@ path hmm::viterbi (vector<featurevec*> fvs, float& prevp, float beam_width=1e10)
     curr[0] = 0;   // initialize to just contain the start state, probability 1
     
     for (int i=0; i < fvs.size(); i++) {
- //       cout << "layer " << i << "; " << curr.size() << " active states" << endl;
         backptr_map bk;
         float next_best_logp = -1e10f;
         for (liter it = curr.begin(); it != curr.end(); it++) {   // loop over active states
@@ -182,6 +192,7 @@ path hmm::viterbi (vector<featurevec*> fvs, float& prevp, float beam_width=1e10)
     }
     // ok, trellis has been computed and backpointer maps are filled. now reconstruct the path
     // first find the best state in the last trellis layer
+    
     /*
     float best_logp = -1e10f;
     int best = -1;
@@ -196,9 +207,10 @@ path hmm::viterbi (vector<featurevec*> fvs, float& prevp, float beam_width=1e10)
         // uh oh. all paths got pruned -- beam width too small (or something majorly wrong)
     }
      */
-    int best = states.size()-1;  // WARNING! THIS IS ONLY FOR TRAINING!
+    int best = states.size()-1;  // WARNING! THIS IS ONLY FOR TRAINING HMMs! (we are only interested in paths that end up at the last state)
+    // use the commented out block above for the actual recognition.
     if (curr.count(best) == 0) {
-        cout << "NO PATH" << endl;
+        cout << "NO PATH" << endl;  // this can happen if the beam width is too small.
         return path;
     }
     float nlp = curr[best] / fvs.size();
@@ -212,7 +224,8 @@ path hmm::viterbi (vector<featurevec*> fvs, float& prevp, float beam_width=1e10)
 }
 
 // this is applied to the training utterance HMMs. In these, there is no way to go
-// back to a previous state.
+// back to a previous state. The MLE advance-to-next-state probability is thus the
+// number of times that state was advanced from (= 1) / the number of times in that state.
 void hmm::train_transition_probabilities (path p) {
     hmm_state *curr = p.front();
     int count = 1;
@@ -231,10 +244,11 @@ void hmm::train_transition_probabilities (path p) {
 
 typedef pair<phone::context, int> mixcomp;
 
-#define EM_ITERS 80
-// this is called on the lexicon HMM
+#define EM_ITERS 80 // number of iterations of EM to do
+
+// train the model on a list of training utterances 'ut'. this is called on the lexicon HMM
 void hmm::train (vector<utterance> &ut) {
-    vector<path> paths;
+    vector<path> paths;     // the current Viterbi paths for each of the training sentences
     vector<float> prevp(ut.size()); 
     int em_iter = 0;
     while (em_iter++ < EM_ITERS) {
@@ -244,7 +258,7 @@ void hmm::train (vector<utterance> &ut) {
         for (int i=0; i < ut.size(); i++) {
             path p = ut[i].hmm->viterbi (ut[i].features, prevp[i], 1e10);
             paths.push_back(p);
-            if (i < 2) {
+            if (i < 2) {    // for curiosity, print out the paths for the first couple sentences
                 for (path::iterator li = p.begin(); li != p.end(); li++ ) {
                     cout << phone::names[(*li)->ph.first] << " ";
                 }
@@ -273,7 +287,7 @@ void hmm::train (vector<utterance> &ut) {
         }
         temp_acm->sum_zetas();
         temp_acm->clear();
-        // compute the weights
+        // compute the mixture weights
         for (acm_iter it = temp_acm->begin(); it != temp_acm->end(); it++) {
             gmm *g = it->second;
             for (int i=0; i < g->gaussians.size(); i++) {
@@ -290,7 +304,7 @@ void hmm::train (vector<utterance> &ut) {
                 for (int k = 0; k < g->gaussians.size(); k++) {
                     featurevec &fv = *ut[i].features[obs_idx];
                     gaussian &comp = g->gaussians[k];
-                    float zeta = comp.weight * comp.prob(fv);
+                    prob_t zeta = comp.weight * comp.prob(fv);
                     gaussian &updated = temp_acm->mixtures[rep]->gaussians[k];
                     for (int e=0; e < FV_LEN; e++) {
                         updated.mean[e] += zeta * fv[e];
@@ -311,7 +325,7 @@ void hmm::train (vector<utterance> &ut) {
                 for (int k = 0; k < g->gaussians.size(); k++) {
                     featurevec &fv = *ut[i].features[obs_idx];
                     gaussian &comp = g->gaussians[k];
-                    float zeta = comp.weight * comp.prob(fv);
+                    prob_t zeta = comp.weight * comp.prob(fv);
                     gaussian &updated = temp_acm->mixtures[rep]->gaussians[k];
                     for (int e=0; e < FV_LEN; e++) {
                         float diff = fv[e] - updated.mean[e];
@@ -345,7 +359,7 @@ void hmm::train (vector<utterance> &ut) {
 
 // update the transitions to reflect the state model
 void hmm::update_states () {
-    for (int i=1; i < states.size(); i++) { // skip the start state
+    for (int i=1; i < states.size(); i++) { // skip the start state (those transition probabilities come from the language model)
         float p = (*sm)(&states[i]);
         states[i].set_adv_prob(p);
     }

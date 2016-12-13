@@ -1,0 +1,74 @@
+Speech Recognizer
+-----------------
+
+This is an Xcode project; you will probably need Xcode to build it. It uses OpenFrameworks
+for the user interface and capturing audio from the microphone, which is the reason for
+using Xcode. Everything else is self-contained.
+
+Organization:
+-------------
+
+The res/ folder contains resources for various aspects of the model.
+
+res/lexicon                 data for determining pronunciations of words
+res/lexicon/cmu.txt         the CMU Pronouncing Dictionary
+res/lexicon/prefixes.txt    common prefixes and their pronunciations
+res/lexicon/suffixes.txt    common suffixes and their pronunciations
+
+res/ngram                   N-gram data from Google N-Grams 'English 1-Million' dataset
+res/ngram/unigram           counts for unigram model
+res/ngram/bigram            counts for bigram model. not currently used.
+
+The Voxforge data is not placed in res/ since Xcode would become unusable as it attempts to
+index the entire corpus (which contains about 225000 files). The path to your Voxforge root
+directory can be set in ofApp.hpp by changing #define VOXFORGE_DIR ... on line 10.
+
+The Voxforge data is organized as follows: each user submission is in a separate folder. The
+relevant parts of the directory structure are:
+
+zhao-20130326-hxz
+ |_ etc
+ | |_ PROMPTS       -- this is the list of transcriptions, one audio file per line
+ |_ wav             -- these are the original WAV audio files
+ | |_ a0260.wav
+ | |_ a0261.wav
+ | |_ ...
+ |_ mfc             -- these are the MFCC features. this directory gets populated by this program.
+   |_ a0260
+   |_ a0261
+   |_ ...
+
+The entire Voxforge corpus is quite large; it is about 13GB (15GB once all the mfc directories are
+filled); furthermore, there is no convenient way to download the entire thing. Each submission can
+be downloaded separately; I obtained a list of the submission names and wrote a script to download
+them all. There was some cleanup work to be done; some (not many) submissions had audio formats
+other than WAV; a few had improperly formatted or missing PROMPTS files. The mfc directories were
+not present originally. 
+
+The src/ folder contains the source code. Here's a short description of what each file contains:
+
+main.cpp        main method; control code for generating MFCCs from Voxforge data,
+                    for training the model, and for the feature extraction demo
+ofApp.cpp       user interface
+wav.cpp         reading and writing WAV audio files
+utils.cpp       various utility functions
+clip.cpp        basic methods for working with a clip of audio data
+mfcc.cpp        cepstral coefficient feature extraction
+pronounce.cpp   pronunciation lexicon, structures for phonemes and phoneme contexts
+gmm.cpp         gaussian mixture model implementation
+hmm.cpp         HMM construction, Viterbi decoding, embedded training
+langmodel.cpp   unigram and bigram models
+cluster.cpp     k-means clustering of feature vectors (could be used for vector quantization)
+
+More information can be found in the comments in each of these files. General comments for a file can
+be found at the top of the corresponding .hpp file; comments for specific methods can be found at the
+location of that method in the .cpp file.
+
+Though I have fixed several bugs in the Viterbi training code since my presentation, I have still been
+unable to get it to converge. I will continue to work on this; there are a couple of possible strategies.
+First, the Baum-Welch algorithm may be more likely to converge than the Viterbi training algorithm, so I could
+try it. Second, the initial values for the GMM parameters may be quite important. I could manually produce
+phone alignments for a small number of recordings, in order to get a better initial estimate of these
+parameters.
+
+

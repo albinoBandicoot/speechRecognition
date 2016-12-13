@@ -18,6 +18,11 @@
 
 #define NOISE_SEMGENTS 15
 
+/* This file defines the featurvec datatype, which represents a 39-dimensional feature vector consisting
+ of the MFCCs and their first and second differences. It also contains code for the computation of the
+ MFCCs, including the filterbanks for resampling the spectrum into Mel frequency space, the Discrete 
+ Cosine Transform, and reading and writing feature vectors to/from files. */
+
 class featurevec {
 public:
     float coeffs[NPARAMS];

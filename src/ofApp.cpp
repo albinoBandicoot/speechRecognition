@@ -1,7 +1,7 @@
 #include "ofApp.h"
 #include "mfcc.hpp"
 #include "wav.hpp"
-#include "corpus.hpp"
+#include "utterance.hpp"
 #include "langmodel.hpp"
 #include "utils.hpp"
 #include "clip.hpp"
@@ -44,10 +44,9 @@ void ofApp::setup(){
     recording = new ClipVectorBuffer();
     recording->ensure(500000);
     noise_spectrum = new ClipArrayBuffer(analysis_bufsize);
- //   fbank = linear_filterbank(100, 100, 35, 100, analysis_bufsize, 44100);
     fbank = mel_filterbank(7200, 48, analysis_bufsize, 44100);
     nframes = 0;
-    nccoeffs = 13;//fbank->length();
+    nccoeffs = 13;
     nscoeffs = 80;
     xscale = 1;
     filter high = fbank->filters.back();
@@ -183,7 +182,7 @@ void ofApp::draw(){
     }
     char str[64] = {0};
     sprintf(str, "%f", mouseval);
-    ofDrawBitmapString(str, 50, 680);
+//    ofDrawBitmapString(str, 50, 680);
     gui.draw();
 }
 

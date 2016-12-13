@@ -13,6 +13,8 @@
 #include <exception>
 #include "clip.hpp"
 
+/* WAV audio format I/O routines */
+
 class wav_io_exception : public exception {
 public:
     const char *m;

@@ -10,18 +10,23 @@
 #include <iostream>
 using namespace std;
 
+/* FEATUREVEC */
+
+// constructor; initialize to 0
 featurevec::featurevec () {
     for (int i=0; i < NPARAMS; i++) {
         coeffs[i] = deltas[i] = delta2s[i] = 0;
     }
 }
 
+// constructor; copy from float array
 featurevec::featurevec (float *c) {
     for (int i=0; i < NPARAMS; i++) {
         coeffs[i] = c[i];
     }
 }
 
+// index into the feature vector
 float& featurevec::operator[] (int i)  {
     if (i < NPARAMS) return coeffs[i];
     if (i < 2*NPARAMS) return deltas[i-NPARAMS];
@@ -29,18 +34,21 @@ float& featurevec::operator[] (int i)  {
     return coeffs[i];
 }
 
+// add feature vector f into this
 void featurevec::operator+= (featurevec &f) {
     for (int i=0; i < FV_LEN; i++) {
         (*this)[i] += f[i];
     }
 }
 
+// multiply this by a constant
 void featurevec::operator*= (float f) {
     for (int i=0; i < FV_LEN; i++) {
         (*this)[i] *= f;
     }
 }
 
+// Euclidean distance between this and f
 float featurevec::dist (featurevec &f) {
     float d = 0;
     for (int i=0; i < FV_LEN; i++) {
@@ -50,6 +58,9 @@ float featurevec::dist (featurevec &f) {
     return sqrt(d);
 }
 
+// normalize the coefficients of this feature vector according to a mean mu and variance var
+// the entries will be transformed into the number of standard deviations away from the mean
+// the original entry was.
 featurevec featurevec::normalize (featurevec &mu, featurevec &var) {
     featurevec res;
     for (int i=0 ; i < FV_LEN; i++) {
@@ -58,6 +69,7 @@ featurevec featurevec::normalize (featurevec &mu, featurevec &var) {
     return res;
 }
 
+// fill in the deltas for fvs[i]
 void featurevec::compute_deltas (vector<featurevec*> fvs, int i) {
     int j = i-1;
     int k = i+1;
@@ -68,6 +80,7 @@ void featurevec::compute_deltas (vector<featurevec*> fvs, int i) {
     }
 }
 
+// fill in the second differences for fvs[i]
 void featurevec::compute_delta2s (vector<featurevec*> fvs, int i) {
     int j = i-1;
     int k = i+1;
@@ -78,6 +91,7 @@ void featurevec::compute_delta2s (vector<featurevec*> fvs, int i) {
     }
 }
 
+// compute all of the deltas and double-deltas for the feature vector list
 void compute_deltas (vector<featurevec*> fvs) {
     for (int i=0; i < fvs.size(); i++) {
         fvs[i]->compute_deltas(fvs, i);
@@ -87,6 +101,7 @@ void compute_deltas (vector<featurevec*> fvs) {
     }
 }
 
+// generate a random feature vector, normally distributed with mean mu and variance var
 featurevec random_fv (featurevec &mu, featurevec &var) {
     featurevec res;
     for (int i=0; i < FV_LEN; i++) {
@@ -95,8 +110,10 @@ featurevec random_fv (featurevec &mu, featurevec &var) {
     return res;
 }
 
-// -----------------------------------
+/* FILTER and FILTERBANK */
 
+// create a triangular filter with center c, and width w, for a spectrum with a DFT window size of
+// dft_bins, for an audio recording with sps samples per second.
 filter::filter (float c, float w, int dft_bins, int sps) {
     this->center = ofMap(c, 0, sps, 0, dft_bins);
     this->width = ofMap(w, 0, sps, 0, dft_bins);
@@ -110,6 +127,8 @@ filter::filter (float c, float w, int dft_bins, int sps) {
     
 }
 
+// get the height of the filter at DFT bin 'bin' -- this is the value that that DFT bin gets multiplied
+// by when the filter is applied.
 float filter::get (int bin) const {
     float diff = center - bin;
     if (diff < 0) diff = -diff;
@@ -118,9 +137,9 @@ float filter::get (int bin) const {
     diff = 1-diff;
     diff *= height;
     return diff;
-    //return ofMap (abs(center-bin), 0, width, height, 0, true);
 }
 
+// apply the filter to the spectrum (take the product).
 float filter::operator() (float *spectrum) {
     float res = 0;
     for (int i = (int) (center - width); i <= (int)(center+width); i++) {
@@ -129,6 +148,8 @@ float filter::operator() (float *spectrum) {
     return res;
 }
 
+// a filterbank is a sequence of filters
+
 int filterbank::length() const {
     return filters.size();
 }
@@ -136,6 +157,7 @@ int filterbank::length() const {
 filterbank::filterbank () {
 }
 
+// applying the filterbank: create a vector by applying each filter in turn.
 float *filterbank::operator() (float *spectrum) {
     float *res = new float[filters.size()];
     for (int i=0; i < filters.size(); i++) {
@@ -144,6 +166,8 @@ float *filterbank::operator() (float *spectrum) {
     return res;
 }
 
+// create a filterbank with linearly spaced filters. There is really very little point to this, as
+// the DFT bins are already linearly spaced in frequency.
 filterbank* linear_filterbank (float start, float step, int n, float width, int dft_bins, int sps) {
     filterbank *fb = new filterbank();
     for (int i=0; i < n; i++) {
@@ -152,14 +176,17 @@ filterbank* linear_filterbank (float start, float step, int n, float width, int 
     return fb;
 }
 
+// convert from Mel-frequency space to linear frequency
 float melToHz (float mel) {
     return 700 * (exp(mel/1127.0f)-1);
 }
 
+// convert from linear frequency to Mel-frequency
 float hzToMel (float hz) {
     return 1127 * log(1+hz/700.0f);
 }
 
+// build a filterbank with filters that are spaced evenly in Mel-frequency space
 filterbank* mel_filterbank (float end, int n, int dft_bins, int sps) {
     filterbank *fb = new filterbank();
     float mel_end = hzToMel(end);
@@ -173,6 +200,8 @@ filterbank* mel_filterbank (float end, int n, int dft_bins, int sps) {
     return fb;
 }
 
+// Get the first 'nparams' coefficients of the Discrete Cosine Transform of 'filtered' - the
+// output of the filterbank.
 float *dct (float *filtered, int len, int nparams) {
     float *res = new float[nparams];
     for (int j=0; j < nparams; j++) {
@@ -184,23 +213,25 @@ float *dct (float *filtered, int len, int nparams) {
     return res;
 }
 
-// the clip should already be pre-emphasized, if desired
-// assumes the last filter has the highest center+width value.
+// compute the MFCCs for the clip 'c' using the filterbank 'fb'
+// the 'noise' parameter is an estimate of the spectrum of whatever unchanging noise is present in the
+// recording. It is subtracted from the DFT of the signal to help eliminate noise.
 float *mfcc (Clip c, filterbank &fb, float *noise) {
     filter high = fb.filters.back();
     int bin_max = (int) (high.center + high.width) + 1;
     float dft[bin_max];
-    c.partial_dft(dft, bin_max);
+    c.partial_dft(dft, bin_max);        // calculate the DFT
     for (int i=0; i < bin_max; i++) {
-//        dft[i] = fmax(0, dft[i] - noise[i]);
+//        dft[i] = fmax(0, dft[i] - noise[i]);  // do the noise subtraction
     }
-    float *filtered = fb(dft);
-    log(filtered, fb.length());
-    float *coeffs = dct(filtered, fb.length(), NPARAMS);
+    float *filtered = fb(dft);      // apply the filterbank
+    log(filtered, fb.length());     // take the log of the spectrum
+    float *coeffs = dct(filtered, fb.length(), NPARAMS);    // take the DCT
     delete[] filtered;
     return coeffs;
 }
 
+// compute and write the features for the clip 'c' to file 'fname'
 void write_features (Clip c, unsigned window_len, unsigned frame_shift, filterbank &fb, string fname) {
     FILE *out = fopen (fname.c_str(), "w");
     if (out == NULL) throw 1;
@@ -212,6 +243,7 @@ void write_features (Clip c, unsigned window_len, unsigned frame_shift, filterba
     filter high = fb.filters.back();
     int bin_max = (int) (high.center + high.width) + 1;
 
+    // estimate the noise
     float noise[bin_max];
     for (int i=0; i < bin_max; i++) noise[i] = 0;
     for (int i=0 ; i < NOISE_SEMGENTS; i++) {
@@ -221,7 +253,8 @@ void write_features (Clip c, unsigned window_len, unsigned frame_shift, filterba
     }
     for (int i=0; i < bin_max; i++) noise[i] /= NOISE_SEMGENTS;
     
-    window.window = hamming_window;
+    // now generate the vectors and write them
+    window.window = hamming_window; // set the windowing function
     fseek (out, 4, SEEK_CUR);
     int n = 0;
     long time = clock();
@@ -241,6 +274,7 @@ void write_features (Clip c, unsigned window_len, unsigned frame_shift, filterba
     fclose (out);
 }
 
+// read features in from a file. 
 vector<featurevec*> read_features (string fname, int WL=2) {
     cout << "\treading features... ";
     FILE *in = fopen (fname.c_str(), "r");

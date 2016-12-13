@@ -14,6 +14,11 @@
 #include "ofMain.h"
 #include "utils.hpp"
 
+/* Methods for working with audio data, once it's been read in. 
+ ClipBuffer stores the actual data; Clip is a view into a ClipBuffer. 
+*/
+
+// virtual base class for two types of clip buffers, one based on arrays and one on vectors.
 class ClipBuffer {
 public:
     virtual float& operator[](int) =0;
@@ -23,6 +28,7 @@ public:
     void append (const ofSoundBuffer &buf);
 };
 
+// array-based clip buffer
 class ClipArrayBuffer : public ClipBuffer {
 private:
     int n;
@@ -39,6 +45,7 @@ public:
     
 };
 
+// vector-based clip buffer
 class ClipVectorBuffer : public ClipBuffer {
 private:
     vector<float> samples;
@@ -56,11 +63,12 @@ public:
     
 };
 
+// view into a buffer of audio data
 class Clip {
 public:
     ClipBuffer *buf;
     int start, end;
-    float (*window)(int, int);
+    float (*window)(int, int);  // pointer to windowing function. will be applied in the [] operator
     
     Clip ();
     Clip (ClipBuffer &b);
@@ -82,7 +90,6 @@ public:
     double rmsAmplitude () const;
     void dft (float *out, bool stack=false) const;
     void partial_dft (float*out, int len, bool stack=false) const;
-    void cepstrum (float *out) const;
 
     void preemphasis (float alpha);
     

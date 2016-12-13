@@ -16,7 +16,7 @@ vector<featurevec> kmeans (vector<featurevec*> fvs, featurevec &mu, featurevec &
     // initialize the centers
     vector<featurevec> centers;
     for (int i=0; i < k; i++) {
-        centers.push_back (random_fv(mu, var));
+        centers.push_back (random_fv(mu, var)); // initialize centers to random locations distributed normally about mu with variance var
     }
     
     int closest[fvs.size()];

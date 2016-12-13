@@ -15,8 +15,7 @@
 #include <math.h>
 using namespace std;
 
-// unigram total count: 99988858479
-// bigram total count:  74392058855
+/* N-gram models. Currently only unigram and bigram are implemented; only unigram is currently used anywhere in the recognizer. */
 
 class ngram_model {
 public:
@@ -31,6 +30,7 @@ public:
 class unigram_model : public ngram_model {
 public:
     
+    // construct from file: 1 unigram per line; word followed by count, separated by whitespace
     unigram_model (istream &in, long total_count) : ngram_model(1,total_count) {
         string w;
         long count;
@@ -48,8 +48,9 @@ public:
 class bigram_model : public ngram_model {
 public:
     
-    unigram_model *uni;
+    unigram_model *uni; // model to fall back on for non-existant bigrams
     
+    // build from file
     bigram_model (istream &in, unigram_model *u, long total_count) : ngram_model(2,total_count), uni(u) {
         string w1, w2;
         long count;

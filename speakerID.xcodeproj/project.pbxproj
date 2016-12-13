@@ -15,7 +15,7 @@
 		B266578FC55D23BFEBC042E7 /* ofxGuiGroup.cpp in Sources */ = {isa = PBXBuildFile; fileRef = ECF8674C7975F1063C5E30CA /* ofxGuiGroup.cpp */; };
 		B56FE57CC35806596D38118C /* ofxSliderGroup.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 802251BAF1B35B1D67B32FD0 /* ofxSliderGroup.cpp */; };
 		D8114A941DFB396C00B9FF2E /* cluster.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D8114A921DFB396C00B9FF2E /* cluster.cpp */; };
-		D8140BAA1DEBE64E0054AF69 /* corpus.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D8140BA81DEBE64E0054AF69 /* corpus.cpp */; };
+		D8140BAA1DEBE64E0054AF69 /* utterance.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D8140BA81DEBE64E0054AF69 /* utterance.cpp */; };
 		D8140BAD1DECA53B0054AF69 /* langmodel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D8140BAB1DECA53B0054AF69 /* langmodel.cpp */; };
 		D83982B71DE69A4A003DE913 /* gmm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D83982B51DE69A4A003DE913 /* gmm.cpp */; };
 		D83982BA1DE6ACED003DE913 /* hmm.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D83982B81DE6ACED003DE913 /* hmm.cpp */; };
@@ -77,8 +77,9 @@
 		C88333E71C9457E441C33474 /* ofxButton.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 30; name = ofxButton.cpp; path = ../../../addons/ofxGui/src/ofxButton.cpp; sourceTree = SOURCE_ROOT; };
 		D8114A921DFB396C00B9FF2E /* cluster.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cluster.cpp; sourceTree = "<group>"; };
 		D8114A931DFB396C00B9FF2E /* cluster.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = cluster.hpp; sourceTree = "<group>"; };
-		D8140BA81DEBE64E0054AF69 /* corpus.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = corpus.cpp; sourceTree = "<group>"; };
-		D8140BA91DEBE64E0054AF69 /* corpus.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = corpus.hpp; sourceTree = "<group>"; };
+		D8114A951DFF624E00B9FF2E /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
+		D8140BA81DEBE64E0054AF69 /* utterance.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = utterance.cpp; sourceTree = "<group>"; };
+		D8140BA91DEBE64E0054AF69 /* utterance.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = utterance.hpp; sourceTree = "<group>"; };
 		D8140BAB1DECA53B0054AF69 /* langmodel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = langmodel.cpp; sourceTree = "<group>"; };
 		D8140BAC1DECA53B0054AF69 /* langmodel.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = langmodel.hpp; sourceTree = "<group>"; };
 		D83982B41DE638AD003DE913 /* res */ = {isa = PBXFileReference; lastKnownFileType = folder; path = res; sourceTree = "<group>"; };
@@ -194,11 +195,12 @@
 			children = (
 				E4B69E1D0A3A1BDC003C02F2 /* main.cpp */,
 				E4B69E1E0A3A1BDC003C02F2 /* ofApp.cpp */,
+				D8114A951DFF624E00B9FF2E /* README */,
 				E4B69E1F0A3A1BDC003C02F2 /* ofApp.h */,
 				D8140BAB1DECA53B0054AF69 /* langmodel.cpp */,
 				D8140BAC1DECA53B0054AF69 /* langmodel.hpp */,
-				D8140BA81DEBE64E0054AF69 /* corpus.cpp */,
-				D8140BA91DEBE64E0054AF69 /* corpus.hpp */,
+				D8140BA81DEBE64E0054AF69 /* utterance.cpp */,
+				D8140BA91DEBE64E0054AF69 /* utterance.hpp */,
 				D83982B51DE69A4A003DE913 /* gmm.cpp */,
 				D83982B61DE69A4A003DE913 /* gmm.hpp */,
 				D83982B81DE6ACED003DE913 /* hmm.cpp */,
@@ -334,7 +336,7 @@
 				D8140BAD1DECA53B0054AF69 /* langmodel.cpp in Sources */,
 				B56FE57CC35806596D38118C /* ofxSliderGroup.cpp in Sources */,
 				1CD33E884D9E3358252E82A1 /* ofxToggle.cpp in Sources */,
-				D8140BAA1DEBE64E0054AF69 /* corpus.cpp in Sources */,
+				D8140BAA1DEBE64E0054AF69 /* utterance.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

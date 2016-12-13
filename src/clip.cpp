@@ -21,6 +21,8 @@ ClipArrayBuffer::ClipArrayBuffer (int n) {
     this->buf = new float[n];
 }
 
+// ofSoundBuffer is an OpenFrameworks type; it comes from getting microphone data.
+// This will copy it into our own type.
 ClipArrayBuffer::ClipArrayBuffer (ofSoundBuffer &b) {
     this->n = b.getNumFrames();
     this->buf = new float[n];
@@ -101,6 +103,8 @@ Clip::Clip (const Clip &clip, int start, int end) {
     this->window = rectangular_window;
 }
 
+// move the view n samples forward. returns whether the entire view is in bounds.
+// this is useful for doing the sliding windows for MFCC generation
 bool Clip::slide (int n) {
     start += n;
     end += n;
@@ -115,10 +119,12 @@ float& Clip::operator[] (int idx)  {
     return (*buf)[start+idx];
 }
 
+// apply the window function when accessing the clip
 float Clip::operator[] (int idx) const {
     return (*buf)[start+idx] * window(idx, length());
 }
 
+// add another clip
 void Clip::operator+=(Clip &c) {
     for (int i=0; i < min(length(), c.length()); i++) {
         (*this)[i] += c[i];
@@ -141,11 +147,13 @@ void Clip::operator*=(float f) {
     }
 }
 
+// scale the clip so that it's RMS amplitude equals 'targetRMS'
 void Clip::normalizeVolume (float targetRMS) {
     float currentRMS = rmsAmplitude();
     *this *= (targetRMS/currentRMS);
 }
 
+// compute the root mean square amplitude of the clip. A decent measure of overall volume.
 double Clip::rmsAmplitude () const {
     double amp = 0;
     for (int i=0; i < length(); i++) {
@@ -159,6 +167,10 @@ void Clip::dft (float *out, bool stack) const {
     partial_dft (out, length(), stack);
 }
 
+// compute the first 'len' coefficients of the Discrete Fourier Transform of this clip.
+// writes into the array 'out'; if 'stack' is true, will add to the values already there;
+// if false will overwrite. Stacking mode is useful for building up a noise spectrum from
+// multiple segments.
 void Clip::partial_dft (float *out, int len, bool stack) const {
     int N = length();
     float rootn_inv = 1.0f/sqrt(N);
@@ -181,19 +193,9 @@ void Clip::partial_dft (float *out, int len, bool stack) const {
     }
 }
 
-void Clip::cepstrum (float *out) const {
-    int N = length();
-    ClipArrayBuffer spec(N);
-    dft (spec.buf);
-    for (int i=0; i < N; i++) {
-        spec[i] = log(spec[i]*spec[i]);
-    }
-    Clip(spec).dft(out);
-    for (int i=0; i < N; i++) {
-        out[i] *= out[i];
-    }
-}
-
+// apply a simple high-pass filter. this can emphasize the region of the spectrum with the formants,
+// and help make the overall shape of the spectrum more even (raw spectra tend to slope downwards
+// somewhat artificially)
 void Clip::preemphasis (float alpha) {
     float save = 0;
     for (int i=length()-1; i > 0; i--) {

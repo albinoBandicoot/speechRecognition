@@ -8,7 +8,7 @@
 
 #include "gmm.hpp"
 #include "hmm.hpp"
-#include "corpus.hpp"
+#include "utterance.hpp"
 
 gaussian::gaussian () {
     zetasum = 0;
@@ -20,6 +20,9 @@ gaussian::gaussian () {
     }
 }
 
+// set the parameters to 'mu' and 'sigma2' for mean and variance; however, also throw in some noise.
+// This is important, because if all of the GMMs were initialized exactly the same way, they would
+// never separate from each other to model different things in the training.
 void gaussian::initialize (featurevec &mu, featurevec &sigma2) {
     for (int i=0; i < FV_LEN; i++) {
         float sd = sqrt(sigma2[i]);
@@ -34,6 +37,7 @@ void gaussian::set_wt (float wt) {
     logwt = log(wt);
 }
 
+// evaluate the density function at 'fv'. returns the logarithm.
 float gaussian::operator() (featurevec &fv) {
     float res = 0;
     float l2pi = log(M_2_PI);
@@ -44,10 +48,12 @@ float gaussian::operator() (featurevec &fv) {
     return -0.5f * res + logwt;
 }
 
+// alias for operator()
 float gaussian::logprob (featurevec &fv) {
     return (*this)(fv);
 }
 
+// get the (not-log) probability density
 prob_t gaussian::prob (featurevec &fv) {
     return exp((prob_t)(*this)(fv));
 }
@@ -72,6 +78,7 @@ void gaussian::divide_variances () {
     }
 }
 
+// blend in the updated parameters from 'g'. 'f' is the amount of 'this' to retain
 void gaussian::blend (gaussian &g, float f) {
     for (int i=0; i < FV_LEN; i++) {
         mean[i] = mean[i]*f + g.mean[i]*(1-f);
@@ -80,7 +87,7 @@ void gaussian::blend (gaussian &g, float f) {
     set_wt (weight*f + g.weight*(1-f));
 }
 
-// ----------------------------------------------------------------------
+// ---------------------------- GMM ---------------------------------
 
 gmm::gmm (gmm *g) : gaussians(*new vector<gaussian>()) {
     for (int i=0; i < g->gaussians.size(); i++) {
@@ -91,7 +98,8 @@ gmm::gmm (gmm *g) : gaussians(*new vector<gaussian>()) {
 
 logprob_t gmm::operator() (featurevec &fv) {
     return gaussians[0](fv);
-    /*
+    /* // this is what the code really should do. I'm currently only using single component mixtures, so the above line is sufficient
+     // and avoids going out of log-probability space.
     double res = 0;
     for (int i=0; i < gaussians.size(); i++) {
         res += exp(gaussians[i](fv));
@@ -100,6 +108,8 @@ logprob_t gmm::operator() (featurevec &fv) {
      */
 }
 
+// these next methods all correspond to methods in 'gaussian'; they loop over all the mixture components and
+// apply the method.
 void gmm::initialize (featurevec &mu, featurevec &var) {
     for (int i=0; i < gaussians.size(); i++) {
         gaussians[i].initialize(mu, var);
@@ -143,13 +153,15 @@ void gmm::blend (gmm *g, float f) {
     }
 }
 
-// ----------------------------------------------------------------------
+// ---------------- ACOUSTIC MODEL -------------------
 
+// initialize an acoustic model, with one GMM per equivalence class of phone contexts as
+// specified by 'ties'.
 acoustic_model::acoustic_model (phone::ties &t, int nmix) : ties(t) {
     phone::context start(phone::SIL);
     phone::context c = start;
     do {
-        if (mixtures.count(t(c)) == 0) {
+        if (mixtures.count(t(c)) == 0) {    // if context 'c' represents a new equivalence class, add a GMM for it.
             mixtures[t(c)] = new gmm(nmix);
         }
         ++c;
@@ -168,6 +180,7 @@ void acoustic_model::initialize (featurevec &mu, featurevec &var) {
     }
 }
 
+// apply the appropriate GMM to the feature vector fv in phone context ph
 logprob_t acoustic_model::operator() (featurevec &fv, phone::context ph) {
     return (*(*mixtures.find(ties(ph))).second)(fv);
 }
@@ -179,9 +192,16 @@ void acoustic_model::clear () {
 }
 
 void acoustic_model::sum_zetas () {
+    prob_t zetamax = 0;
+    acm_iter best;
     for (acm_iter it = begin(); it != end(); it++) {
         it->second->sum_zetas();
+        if (zetamax < it->second->zetasum) {
+            zetamax = it->second->zetasum;
+            best = it;
+        }
     }
+    cout << "Maximum zetasum: " << zetamax << " for " << phone::names[best->first.curr] << endl;
 }
 
 void acoustic_model::clear_zetas () {

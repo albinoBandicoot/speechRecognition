@@ -12,12 +12,6 @@
 #include <sstream>
 using namespace std;
 
-pronlist::pronlist () {
-}
-
-void pronlist::add (vector<phone::phone> pr) {
-    pronunciations.push_back(pr);
-}
 
 phone::phone findPhone (string w) {
     int num_idx = w.find_first_of("0123456789");
@@ -56,6 +50,7 @@ phone::ties::ties (mode m) {
     }
 }
 
+// apply the ties mapping
 phone::context phone::ties::operator() (context ctx) {
     return context(c[ctx.prev], ctx.curr, c[ctx.next]);
 }
@@ -69,6 +64,7 @@ bool phone::context::operator< (const context& c) const {
     return false;
 }
 
+// increment the context. useful for looping over all contexts
 phone::context phone::context::operator++ () {
     int n = ((int) next) + 1;
     if (n == NUM_PH) {
@@ -94,9 +90,18 @@ ostream& operator<< (ostream &strm, const phone::context &ctx) {
 
 // -----------------------------------------------------
 
+
+pronlist::pronlist () {
+}
+
+void pronlist::add (vector<phone::phone> pr) {
+    pronunciations.push_back(pr);
+}
+
 pronlex::pronlex () {
 }
 
+// read in a pronunciation lexicon in CMU Pronouncing Dictionary format.
 pronlex::pronlex (istream &in) {
     char buf[256];
     memset (buf, 0, 256);
@@ -132,6 +137,7 @@ pronlex::pronlex (istream &in) {
     }
 }
 
+// get the list of pronunciations for a word.
 pronlist *pronlex::get (string w) {
     if (pr.count(w) == 1) {
         return &pr[w];
@@ -140,6 +146,7 @@ pronlist *pronlex::get (string w) {
     return NULL;
 }
 
+// build a pronouncer out of files for the main lexicon and the prefix and suffix lexicons
 pronouncer::pronouncer (const char *main_fn, const char *pre_fn, const char *suf_fn) {
     ifstream m_in(main_fn), p_in(pre_fn), s_in(suf_fn);
     main = *new pronlex (m_in);
@@ -148,6 +155,7 @@ pronouncer::pronouncer (const char *main_fn, const char *pre_fn, const char *suf
     cout << "Got " << main.pr.size() << " words in main lexicon." << endl;
 }
 
+// utility method for appending one list of phones to another.
 void append_pron (vector<phone::phone> &res, vector<phone::phone> wp, bool leading_silence=true) {
     if (leading_silence) res.push_back (phone::SIL);
     for (int i=0; i < wp.size(); i++) {
@@ -159,6 +167,14 @@ void append_pron (vector<phone::phone> &res, pronlist *p, bool leading_silence=t
     append_pron (res, p->pronunciations[0]);
 }
 
+/* the main workhorse of the pronouncer. Will get the pronunciation of a word 'w'. 
+   First it looks in the main lexicon. If it is not there, then it will see if the
+   word is hyphenated; if so, it will try to pronounce each piece. Then it will 
+   check to see if the word has a common prefix or suffix (or both) as specified in
+   the prefix and suffix lexicons. Failing that, it will attempt to split the word 
+   at various points (not too close to the ends), and search the lexicon for each 
+   piece. If that fails it gives up and throws an exception.
+ */
 vector<phone::phone> pronouncer::pronounce_word (string w) {
     vector<phone::phone> res;
     char last = w[w.length()-1];
@@ -240,6 +256,7 @@ vector<phone::phone> pronouncer::pronounce_word (string w) {
     }
 }
 
+// split 's' into words, pronounce each word, concatenate the pronunciations
 vector<phone::phone> pronouncer::pronounce (string s) {
     vector<phone::phone> res;
     istringstream is(s);
