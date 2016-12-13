@@ -8,7 +8,7 @@
 #include "pronounce.hpp"
 
 #define VOXFORGE_DIR "/Users/Nathan/Documents/2016H/Security/project/audio/voxforge/"
-
+#define RES_DIR "../res/"
 /* This is the GUI, using OpenFrameworks. It is the feature extraction demo, as shown in my presentation.
  */
 

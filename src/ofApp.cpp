@@ -9,6 +9,7 @@
 #include <vector>
 //--------------------------------------------------------------
 void ofApp::setup(){
+    /*
     cout << "Loading pronunciation lexicon..." << endl;
     pronouncer pron("../../../../res/lexicon/cmu.txt", "../../../../res/lexicon/prefixes.txt", "../../../../res/lexicon/suffixes.txt");
     cout << "Loading language model..." << endl;
@@ -19,7 +20,9 @@ void ofApp::setup(){
     phone::ties acm_ties(phone::ties::NULL_CONTEXT);
     phone::ties hmm_ties(phone::ties::PHONE_CLASSES);
     acoustic_model acm (acm_ties, 1);
+    */
     
+    /* This code reads some Voxforge data to get an estimate of the mean and standard deviation for the cepstral coefficients.
     cout << "Reading training data... " << endl;
     vector<string> folders = readlines (VOXFORGE_DIR + string("/_train"));
     vector<utterance> ut;
@@ -40,6 +43,13 @@ void ofApp::setup(){
         sigma[i] = sqrt(sigma[i]);
         cout << "COEFF " << i << ": mean = " << mu[i] << "; stddev = " << sigma[i] << endl;
     }
+     */
+    // in the interest of making the demo code run without a Voxforge setup, I've computed the means and standard deviations from
+    // the first 100 utterances and placed their values here.
+    float mean[FV_LEN] = {0.013359, 0.00027242, -0.00105914, 0.00190712, -0.00140384, -0.000937096, -5.72495e-05, -0.000317747, -7.50921e-05, 0.000515569, 0.000320341, 2.29602e-05, 3.44292e-05};
+    float stddev[FV_LEN] = {0.0182758, 0.00875367,0.00600306, 0.00570116,0.00477195,0.00481848, 0.00393407,0.0031682,0.00276722, 0.00269578,0.0023497,0.00220909,0.00203691};
+    mu = featurevec (mean);
+    sigma = featurevec (stddev);
     
     recording = new ClipVectorBuffer();
     recording->ensure(500000);
@@ -107,7 +117,7 @@ void ofApp::draw(){
         ofDrawBitmapString ("Recording...", 100, 650);
         return;
     } else if (state == START || state == COMPUTE) {
-        ofDrawBitmapString ("...", 100, 650);
+        ofDrawBitmapString ("Press space to begin recording, and again to stop. Once done, -/= zooms out/in; h/l moves left/right", 100, 650);
         return;
     }
     float xperbuf = xscale * 900.0f / nframes;
