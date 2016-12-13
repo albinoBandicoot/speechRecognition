@@ -1,0 +1,14 @@
+; suffixes
+ABLE  AH B AH L
+AL  AH L
+ED  IH D
+ER   ER
+EST EH S T
+ING  IH NG
+LESS  L EH S
+LY  L IY
+NESS  N EH S
+TION SH AH N
+TIONS  SH AH N S
+S  S
+'S  S

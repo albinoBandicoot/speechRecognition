@@ -1,0 +1,15 @@
+; prefixes
+BE  B IY
+CON  K AH N
+CON(1)  K AA N
+DE  D IH
+DE(1)  D IY
+DIS  D IH S
+EM  EH M
+EN  EH N
+IM  IH M
+IN  IH N
+NON  N AA N
+PRE  P R IY
+RE  R IY
+UN  AH N
